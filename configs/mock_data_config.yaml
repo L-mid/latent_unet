@@ -1,0 +1,30 @@
+
+defaults:
+  seed: 42
+  device: cpu
+  dtype: float32
+
+image_batch:
+  batch_size: 8
+  channels: 3
+  height: 256
+  width: 256
+  value_range: [0.0, 1.0]
+
+latent_batch:
+  batch_size: 8
+  latent_dim: 4
+  height: 32
+  width: 32
+  spatial_dims: [32, 32]
+
+text_embedding:
+  batch_size: 8
+  embedding_dim: 768
+  num_tokens: null 
+
+unet_inputs:
+  image_size: 256
+  latent_channels: 4
+  embedding_dim: 768
+

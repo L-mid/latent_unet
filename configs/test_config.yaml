@@ -1,0 +1,215 @@
+
+test_config:
+  run_all: false    # true overrides and runs all tests
+
+  run_all_unit: false
+  run_all_integration: false
+  run_all_end_to_end: false
+
+  run_all_subsystems: false
+  run_all_regression: false
+
+  logging:
+    verbose: true
+    level: "info"   # "info | debug"
+    log_to_file: true
+    file_path: logs/test_summary.txt
+
+
+  # --- Unit tests ---
+  unit:
+    time_embedding:
+      enabled: true
+      tests:
+      - test_embedding_output_shape
+      - test_sinusoidal_embedding_consistency
+      - test_learned_embedding_trains
+
+    mid_block:
+      enabled: false
+      tests:
+      - attention_effectiveness
+      - bottleneck_integrity
+
+    residual_block:
+      enabled: false
+      tests:
+      - shape_consitency
+      - backprop_gradients
+      - variant_compatibility
+      - normalization_stability
+      - gradient_checkpointing
+      - film_modulation
+    
+    attention_block:
+      enabled: false
+      tests:
+      - vanilla
+      - flash
+      - window
+      - device_support  # for flash attn
+      - attention_shapes
+
+    down_block:
+      enabled: false
+      tests:
+      - output_size_check
+      - residual_and_attention_check
+      - downsampling_path_consistency
+    
+    up_block:
+      enabled: false
+      tests:
+      - skip_connection_check
+      - output_size_check
+      - upsampling_path_consistency
+
+    final_head:
+      enabled: false
+      tests:
+      - projection_shape
+      - device_transfer
+      - initalization_properties
+
+
+  # --- Integration tests ---
+
+  integration:
+    unet:
+      enabled: false
+      tests:
+      - integration_shape
+      - device_transfer
+      - module_transfer
+      - full_pass_through
+
+    forward_process: 
+      enabled: false
+      tests:
+      - beta_schedule_shapes
+      - q_sample_shape_consistency
+      - noise_determinisim_seeded
+      - alpha_product_monotonicity
+      - returned_noise_stats
+      - visual_debug_compatibility
+
+    train_loop: 
+      enabled: false
+      tests:
+      - train_one_step_runs
+      - dummy_dataset_loading
+
+    ddpm_ddim_edm:
+      enabled: false
+      tests:
+      - ddpm
+      - ddim
+      - edm
+  
+
+  # --- End to end tests ---
+
+  end_to_end:
+    training_pipeline:
+      enabled: false
+      tests:
+      - null  # tbd, for now in test_train_loop.py
+
+    sampling_loop:
+      enabled: false
+      tests:
+      - dynamic_thresholding
+      - cfg_guidance
+      - scheduled_guidance
+      - self_conditioning
+      - snr
+      - snr_weight
+      - curriculum_sampling  
+
+  # --- Subsystem tests ---
+  
+  subsystems:
+    checkpointing:
+      tensorstore:
+        enabled: false  
+        tests:
+        - full_tensorstore_checkpoint_roundtrip
+        - vaild_schema_passes
+        - test_missing_dataset_dectected
+        - shape_mismatch_detected
+        - dtype_mismatch_detected
+
+      zarr:
+        enabled: false
+        tests:
+        - full_zarr_checkpoint_roundtrip
+
+      vanilla:
+        enabled: false
+        tests:
+        - get_dummy_state
+        - checkpoint_save_load_consistency
+        - checkpoint_restores_epoch_step_loss
+        - checkpoint_handles_missing_file
+        - checkpoint_cpu_gpu_transfer
+
+    data:
+      enabled: false
+      tests:
+      - create_dummy_image
+      - create_dummy_basic_dataset
+      - create_dummy_caption_dataset
+      - test_caption_dataset_pipeline
+
+    visualizer:
+      enabled: false
+      tests:
+      - null  # tbd
+
+    debug_hooks: 
+      enabled: false
+      tests:
+      - debug_prints_and_runs
+
+    failiure_injection:
+      enabled: false
+      tests:
+      - nan_injection
+      - inf_injection
+      - disk_write_failure
+      - kill_process
+      - gpu_memory_spike
+      - network_failure
+      - memory_leak_simulation
+      - randomized_cpu_spike
+      - corrupt_training_state
+      - throw_random_assert
+      - stdout_flood
+      - random_train_loop_skip
+
+    config:
+      enabled: true
+      tests:
+      - test_config_parses_and_has_required_sections
+      - test_config_serialization_roundtrip
+      - test_yaml_roundtrip
+      - test_build_unet_config_with_mocked_modules
+      - test_build_unet_config_shape
+
+  # --- Regression tests ---
+
+  regression:
+    enabled: false
+    tests:
+    - null # tbd (none yet!)
+
+  
+    
+# --- TODO
+
+# Future enhancement: maybe include multi-GPU simulated runs or dataset-driven samples.
+# Also mabye add descs to each test name on what they test for
+
+# pytest instructions:
+# cd latent_unet_v1
+# pytest [insert file path from there]
