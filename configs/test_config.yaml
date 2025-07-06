@@ -42,13 +42,14 @@ test_config:
       - film_modulation
     
     attention_block:
-      enabled: false
+      enabled: true
       tests:
-      - vanilla
-      - flash
-      - window
-      - device_support  # for flash attn
-      - attention_shapes
+      - test_output_shape_cpu
+      - test_output_shape_cuda
+      - test_backprop
+      - test_requires_cuda  # for flash attn
+      - test_interface_compliance
+      - test_invalid_varient_raises
 
     down_block:
       enabled: false

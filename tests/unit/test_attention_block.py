@@ -7,6 +7,10 @@ from omegaconf import OmegaConf
 from modules.attention.flash_attention import FlashAttention
 from modules.attention.registry import get_attention
 from modules.attention.base_attention import BaseAttention
+from helpers.test_utils import controlled_test
+
+CATEGORY = "unit"
+MODULE = "attention_block"
 
 
 # ------------------------ #
@@ -26,7 +30,8 @@ class TestFlashAttention:
         self.x = torch.randn(2, 64, 32, 32, requires_grad=True)
 
     @pytest.mark.parametrize("backend", ["auto", "fallback_only"])
-    def test_output_shape_cpu(self, backend):
+    @controlled_test(CATEGORY, MODULE)
+    def test_output_shape_cpu(self, backend, test_config):
         cfg = OmegaConf.create({**self.base_cfg, "backend": backend})
         block = get_attention(cfg)
         out = block(self.x)
@@ -34,7 +39,8 @@ class TestFlashAttention:
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required for flash backend")
     @pytest.mark.parametrize("backend", ["auto", "flash_only"])
-    def test_output_shape_cuda(self, backend):
+    @controlled_test(CATEGORY, MODULE)
+    def test_output_shape_cuda(self, backend, test_config):
         cfg = OmegaConf.merge(self.base_cfg, {
             "params": {
                 "backend": backend
@@ -46,7 +52,8 @@ class TestFlashAttention:
 
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required for flash backend")
-    def test_backprop(self):
+    @controlled_test(CATEGORY, MODULE)
+    def test_backprop(self, test_config):
         cfg = OmegaConf.merge(self.base_cfg, {
             "params": {
                 "backend": "auto"
@@ -61,7 +68,8 @@ class TestFlashAttention:
         assert x.grad is not None
         assert torch.isfinite(x.grad).all()
 
-    def test_requires_cuda(self):
+    @controlled_test(CATEGORY, MODULE)
+    def test_requires_cuda(self, test_config):
         if not torch.cuda.is_available():
             cfg = OmegaConf.merge(self.base_cfg, {   
                 "params": {
@@ -77,7 +85,8 @@ class TestFlashAttention:
 # ---------------------------- #
 
 class TestAttentionSystemAPI:
-    def test_interface_compliance(self):
+    @controlled_test(CATEGORY, MODULE)
+    def test_interface_compliance(self, test_config):
         dummy_input = torch.randn(2, 64, 32, 32)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         dummy_input = dummy_input.to(device)
@@ -90,7 +99,8 @@ class TestAttentionSystemAPI:
             out = model(dummy_input)
             assert model(dummy_input).shape == dummy_input.shape
 
-    def test_invalid_varient_raises(self):
+    @controlled_test(CATEGORY, MODULE)
+    def test_invalid_varient_raises(self, test_config):
         with pytest.raises(ValueError, match="Unknown attention type"):
             bad_cfg = OmegaConf.create({
                 "kind": "invalid",
