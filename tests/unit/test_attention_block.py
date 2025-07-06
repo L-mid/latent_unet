@@ -53,7 +53,9 @@ class TestFlashAttention:
             }
         })
         block = get_attention(cfg).cuda()
-        x = self.x.cuda()
+
+        x = self.x.cuda().detach().requires_grad_()
+        
         out = block(x)
         out.sum().backward()
         assert x.grad is not None
@@ -82,7 +84,7 @@ class TestAttentionSystemAPI:
                 continue
             model = cls(dim=64, num_heads=4)
             assert isinstance(model, BaseAttention)
-            out = model(dummy_input if not torch.cuda_cuda.is_available() else dummy_input.cuda())
+            out = model(dummy_input if not torch.cuda.is_available() else dummy_input.cuda())
             assert model(dummy_input).shape == dummy_input.shape
 
     def test_invalid_varient_raises(self):
