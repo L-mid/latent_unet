@@ -66,7 +66,7 @@ def get_time_embedding(cfg) -> nn.Module:
     # Expects cfg.kind in {"sinusoidal", "learned", "film"}
 
     kind = cfg.kind.lower()
-    dim = cfg.dim
+    dim = cfg.params.dim
 
     if kind == "sinusoidal":
         return SinusoidalTimeEmbedding(dim)

@@ -18,12 +18,14 @@ def test_embedding_output_shape(kind, dim, test_config):
     timesteps = torch.randint(0, 1000, (batch_size,))
 
     # Build mock config expected by get_time_embedding
-    cfg = OmegaConf.create({
+    base_cfg = OmegaConf.create({
         "kind": kind,
-        "dim": dim, 
+        "params": {
+            "dim": dim,
+        }
     })
 
-    emb_layer = get_time_embedding(cfg)
+    emb_layer = get_time_embedding(base_cfg)
     emb = emb_layer(timesteps)
 
     if kind == "film":

@@ -21,7 +21,7 @@ def build_unet_from_config(cfg):
     # Mid Block
     mid_block = MidBlock(
     dim=out_channels[-1],
-    time_embed_dim=cfg.time_embedding.dim,
+    time_embed_dim=cfg.time_embedding.params.dim,
     resblock=cfg.resblock,
     attention=cfg.attention
     )
@@ -31,10 +31,10 @@ def build_unet_from_config(cfg):
         DownBlock(
             in_ch=in_c,
             out_ch=out_c,
-            time_embed_dim=cfg.time_embedding.dim,
+            time_embed_dim=cfg.time_embedding.params.dim,
             resblock_cfg=cfg.resblock,
             attention_cfg=cfg.attention, #
-            apply_attention=(i >= cfg.attention.start_layer)
+            apply_attention=(i >= cfg.attention.params.start_layer)
         )
         for i, (in_c, out_c) in enumerate(zip([base] + in_channels, out_channels))
     ]
@@ -44,10 +44,10 @@ def build_unet_from_config(cfg):
         UpBlock(
             in_ch=out_c * 2,    # Due to skip connections
             out_ch=in_c,
-            time_embed_dim=cfg.time_embedding.dim,
+            time_embed_dim=cfg.time_embedding.params.dim,
             resblock_cfg=cfg.resblock,
             attention_cfg=cfg.attention,
-            apply_attention=(i >= cfg.attention.start_layer)
+            apply_attention=(i >= cfg.attention.params.start_layer)
         )
         for i, (in_c, out_c) in enumerate(zip(reversed(in_channels), reversed(out_channels)))
     ]
