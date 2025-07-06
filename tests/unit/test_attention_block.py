@@ -55,7 +55,7 @@ class TestFlashAttention:
         block = get_attention(cfg).cuda()
 
         x = self.x.cuda().detach().requires_grad_()
-        
+
         out = block(x)
         out.sum().backward()
         assert x.grad is not None
@@ -79,7 +79,8 @@ class TestFlashAttention:
 class TestAttentionSystemAPI:
     def test_interface_compliance(self):
         dummy_input = torch.randn(2, 64, 32, 32)
-        for cls in [FlashAttention,]:    # other attentions added here later
+        device = dummy_input.device
+        for cls in [FlashAttention,].to(device):    # other attentions added here later
             if cls is FlashAttention and not torch.cuda.is_available():
                 continue
             model = cls(dim=64, num_heads=4)
