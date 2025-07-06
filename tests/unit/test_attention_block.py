@@ -80,10 +80,10 @@ class TestAttentionSystemAPI:
     def test_interface_compliance(self):
         dummy_input = torch.randn(2, 64, 32, 32)
         device = dummy_input.device
-        for cls in [FlashAttention,].to(device):    # other attentions added here later
+        for cls in [FlashAttention,]:    # other attentions added here later
             if cls is FlashAttention and not torch.cuda.is_available():
                 continue
-            model = cls(dim=64, num_heads=4)
+            model = cls(dim=64, num_heads=4).to(device)
             assert isinstance(model, BaseAttention)
             out = model(dummy_input if not torch.cuda.is_available() else dummy_input.cuda())
             assert model(dummy_input).shape == dummy_input.shape
