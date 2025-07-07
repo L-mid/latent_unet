@@ -35,8 +35,9 @@ model:
 attention:
   kind: "vanilla"   # "vanilla" | "linear" | "flash"
   params:
+    dim: 64 
     num_heads: 8
-    dim: 64
+    norm_groups: 8      
     dim_head: null    # Not currently used
     start_layer: 2    # apply at downsample levels 1 and 2
     window_size: 7

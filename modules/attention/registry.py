@@ -11,4 +11,5 @@ def get_attention(cfg):
     name = cfg.kind
     if name not in ATTENTION_REGISTRY:
         raise ValueError(f"Unknown attention type: {name}")
-    return ATTENTION_REGISTRY[name](**cfg.get("params", {}))
+    params = cfg.get("params", {})
+    return ATTENTION_REGISTRY[name](**params)

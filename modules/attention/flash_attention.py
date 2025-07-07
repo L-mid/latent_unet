@@ -16,11 +16,20 @@ class FlashAttention(BaseAttention):
 
     def __init__(
         self, 
-        num_heads: int = 4, 
-        dim: int = 64,
-        backend: str = "auto",  # "auto" | "flash_only" | "fallback_only"
+        dim: int,
+        num_heads: int = 8, 
+        norm_groups: int = None,    # Here but not impimented as cfg controllable
+        dim_head: int = None,       
+        start_layer: int = 0,
+        window_size: int = 0,   
+        backend: str = None,  # "auto" | "flash_only" | "fallback_only"
+        **kwargs
     ):
-        super().__init__(dim, num_heads)
+        super().__init__(
+            dim=dim, 
+            num_heads=num_heads,
+            backend=backend
+        )
 
         assert dim % num_heads == 0, "dim must be divisible by num_heads"
         self.head_dim = dim // num_heads
