@@ -22,7 +22,7 @@ class FlashAttention(BaseAttention):
         dim_head: int = None,       
         start_layer: int = 0,
         window_size: int = 0,   
-        backend: str = None,  # "auto" | "flash_only" | "fallback_only"
+        backend: str = "auto",  # "auto" | "flash_only" | "fallback_only"
         **kwargs
     ):
         super().__init__(

@@ -24,7 +24,7 @@ def make_attention_cfg(kind: str = "vanilla", overrides=None):
             "dim_head": None,
             "start_layer": 0,
             "window_size": None,
-            "backend": "auto"
+            "backend": None
         }
     }
 
