@@ -7,6 +7,7 @@ from omegaconf import OmegaConf
 from modules.attention.vanilla_attention import VanillaAttention
 from modules.attention.flash_attention import FlashAttention
 from modules.attention.base_attention import BaseAttention
+from modules.attention.window_attention import WindowAttention
 from helpers.test_utils import controlled_test
 from modules.attention.registry import get_attention
 
@@ -52,6 +53,34 @@ class TestVanillaAttention:
         out.mean().backward()
         assert self.x.grad is not None
         assert torch.isfinite(self.x.grad).all()
+
+class TestWindowAttention:
+    def setup_method(self):
+        self.base_window_cfg = make_attention_cfg("window", {
+            "params": {
+                "window_size": 8
+            }
+        })
+        self.x = torch.randn(2, 64, 32, 32, requires_grad=True)
+
+    def test_output_shape(self):
+        block = get_attention(self.base_window_cfg)
+        out = block(self.x)
+        assert out.shape == self.x.shape
+
+    def test_backprop(self):
+        block = get_attention(self.base_window_cfg)
+        out = block(self.x)
+        out.mean().backward()
+        assert self.x.grad is not None
+        assert torch.isfinite(self.x.grad).all()
+
+    @pytest.mark.parametrize("window_size", [4, 8, 16])
+    def test_divisible_window(self, window_size):
+        x = torch.randn(2, 64, window_size, window_size)
+        block = WindowAttention(dim=64, num_heads=4, window_size=window_size)
+        out = block(x)
+        assert out.shape == x.shape
 
 
 class TestFlashAttention:
@@ -129,7 +158,7 @@ class TestAttentionSystemAPI:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         dummy_input = dummy_input.to(device)
 
-        for cls in [VanillaAttention, FlashAttention]:    # other attentions added here later
+        for cls in [VanillaAttention, FlashAttention, WindowAttention]:    # other attentions added here later
             if cls is FlashAttention and not torch.cuda.is_available():
                 continue
             model = cls(dim=64).to(device)     
