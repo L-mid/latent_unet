@@ -1,15 +1,18 @@
 
 import torch
 import pytest
+import matplotlib
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
-from modules.residual_block import get_resblock
+from modules.residual_block import get_resblock, FiLMResBlock
 from modules.norm_utils import get_norm_layer
 from utils.snapshot_tools import assert_tensor_close_to_snapshot
 
 
 # --- Base Utilities ---
 
-KINDS = ["vanilla",]
+KINDS = ["vanilla", "film"]
 NORM_TYPES = ["group", "batch", "layer"]
 
 
@@ -81,7 +84,20 @@ class TestResBlockShared:
 
 
 # ----- Specialized Test Group: FiLM-specific Logic -----
-# tb added later
+
+class TestFiLMResBlock:
+    def test_film_modulation_effects(self):
+        x = torch.randn(2, 64, 16, 16)
+        t1 = torch.randn(2, 128)    # One time embedding
+        t2 = torch.randn(2, 128) * 10.0     # Strongly scaled to cause difference in FiLM output
+
+        block = FiLMResBlock(64, 64, time_dim=128, norm_type="group", use_attention=False)
+
+        out1 = block(x, t1)
+        out2 = block(x, t2)
+
+        diff = (out1 - out2).abs().mean().item()
+        assert diff > 1e-2, f"FiLM modulation too weak, mean diff={diff:.4f}"
 
 
 # ----- Normalization Test Group -----

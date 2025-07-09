@@ -58,6 +58,33 @@ class BaseResBlock(nn.Module):
 
         return h
 
+# ----------------------------------------------------------------------------------------
+# FiLM-style Block
+# ----------------------------------------------------------------------------------------
+
+@register_block("film")
+class FiLMResBlock(BaseResBlock):
+    def __init__(self, in_ch, out_ch, time_dim, norm_type="group", use_attention=False):
+        super().__init__(in_ch, out_ch, time_dim, norm_type, use_attention)
+
+        self.time_proj = nn.Linear(time_dim, in_ch * 2)
+
+    def forward(self, x, t_emb):
+        h = self.norm1(x)
+        scale_shift = self.time_proj(t_emb).unsqueeze(-1).unsqueeze(-1)
+        scale, shift = scale_shift.chunk(2, dim=1)
+
+        h = self.act1(h * (1 + scale) + shift)
+        h = self.conv1(h)
+
+        h = self.act2(self.norm2(h))
+        h = self.conv2(h)
+
+        h += self.res_conv(x)
+        if self.use_attention:
+            h = self.attn(h)
+        return h
+
 
 # ----------------------------------------------------------------------------------------
 # Vanilla Block (same as Base, but registered)
@@ -68,7 +95,7 @@ class VanillaResBlock(BaseResBlock):
     pass
     
 # ----------------------------------------------------------------------------------------
-# Builder
+# ResBlock Getter
 # ----------------------------------------------------------------------------------------
 
 def get_resblock(kind: str, in_ch: int, out_ch: int, time_dim: int, norm_type: str, use_attention: bool):

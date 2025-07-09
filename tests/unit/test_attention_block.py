@@ -1,5 +1,4 @@
 
-# CUDA tests not tested for flash attention.
 
 import torch
 import pytest
