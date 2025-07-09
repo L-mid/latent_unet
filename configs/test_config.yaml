@@ -44,12 +44,17 @@ test_config:
     attention_block:
       enabled: true
       tests:
-      - test_output_shape_cpu
-      - test_output_shape_cuda
-      - test_backprop
-      - test_requires_cuda  # for flash attn
-      - test_interface_compliance
-      - test_invalid_varient_raises
+      - test_vanilla_attn_output_shape
+      - test_vanilla_attn_backprop
+      - test_window_attn_output_shape
+      - test_window_attn_backprop
+      - test_window_attn_divisible_window
+      - test_flash_attn_output_shape_cpu
+      - test_flash_attn_output_shape_cuda
+      - test_flash_attn_backprop  # CUDA
+      - test_flash_attn_requires_cuda
+      - test_attn_interface_compliance
+      - test_attn_cfg_invalid_varient_raises
 
     down_block:
       enabled: false
@@ -189,7 +194,7 @@ test_config:
       - random_train_loop_skip
 
     config:
-      enabled: true
+      enabled: True
       tests:
       - test_config_parses_and_has_required_sections
       - test_config_serialization_roundtrip

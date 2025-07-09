@@ -42,17 +42,20 @@ class TestVanillaAttention:
         self.cfg = make_attention_cfg("vanilla")
         self.x = torch.randn(2, 64, 32, 32, requires_grad=True)
 
-    def test_output_shape(self):
+    @controlled_test(CATEGORY, MODULE)
+    def test_vanilla_attn_output_shape(self, test_config):
         block = get_attention(self.cfg)
         out = block(self.x)
         assert out.shape == self.x.shape
 
-    def test_backprop(self):
+    @controlled_test(CATEGORY, MODULE)
+    def test_vanilla_attn_backprop(self, test_config):
         block = get_attention(self.cfg) 
         out = block(self.x)
         out.mean().backward()
         assert self.x.grad is not None
         assert torch.isfinite(self.x.grad).all()
+
 
 class TestWindowAttention:
     def setup_method(self):
@@ -63,12 +66,14 @@ class TestWindowAttention:
         })
         self.x = torch.randn(2, 64, 32, 32, requires_grad=True)
 
-    def test_output_shape(self):
+    @controlled_test(CATEGORY, MODULE)
+    def test_window_attn_output_shape(self, test_config):
         block = get_attention(self.base_window_cfg)
         out = block(self.x)
         assert out.shape == self.x.shape
 
-    def test_backprop(self):
+    @controlled_test(CATEGORY, MODULE)
+    def test_window_attn_backprop(self, test_config):
         block = get_attention(self.base_window_cfg)
         out = block(self.x)
         out.mean().backward()
@@ -76,7 +81,8 @@ class TestWindowAttention:
         assert torch.isfinite(self.x.grad).all()
 
     @pytest.mark.parametrize("window_size", [4, 8, 16])
-    def test_divisible_window(self, window_size):
+    @controlled_test(CATEGORY, MODULE)
+    def test_window_attn_divisible_window(self, window_size, test_config):
         x = torch.randn(2, 64, window_size, window_size)
         block = WindowAttention(dim=64, num_heads=4, window_size=window_size)
         out = block(x)
@@ -94,7 +100,7 @@ class TestFlashAttention:
 
     @pytest.mark.parametrize("backend", ["auto", "fallback_only"])
     @controlled_test(CATEGORY, MODULE)
-    def test_output_shape_cpu(self, backend, test_config):
+    def test_flash_attn_output_shape_cpu(self, backend, test_config):
         cfg = OmegaConf.merge(self.base_flash_cfg, {
             "params": {
                 "backend": backend
@@ -107,7 +113,7 @@ class TestFlashAttention:
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required for flash backend")
     @pytest.mark.parametrize("backend", ["auto", "flash_only"])
     @controlled_test(CATEGORY, MODULE)
-    def test_output_shape_cuda(self, backend, test_config):
+    def test_flash_attn_output_shape_cuda(self, backend, test_config):
         cfg = OmegaConf.merge(self.base_flash_cfg, {
             "params": {
                 "backend": backend
@@ -120,7 +126,7 @@ class TestFlashAttention:
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required for flash backend")
     @controlled_test(CATEGORY, MODULE)
-    def test_backprop(self, test_config):
+    def test_flash_attn_backprop(self, test_config):
         cfg = OmegaConf.merge(self.base_flash_cfg, {
             "params": {
                 "backend": "auto"
@@ -136,7 +142,7 @@ class TestFlashAttention:
         assert torch.isfinite(x.grad).all()
 
     @controlled_test(CATEGORY, MODULE)
-    def test_requires_cuda(self, test_config):
+    def test_flash_attn_requires_cuda(self, test_config):
         if not torch.cuda.is_available():
             cfg = OmegaConf.merge(self.base_flash_cfg, {   
                 "params": {
@@ -153,7 +159,7 @@ class TestFlashAttention:
 
 class TestAttentionSystemAPI:
     @controlled_test(CATEGORY, MODULE)
-    def test_interface_compliance(self, test_config):
+    def test_attn_interface_compliance(self, test_config):
         dummy_input = torch.randn(2, 64, 32, 32)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         dummy_input = dummy_input.to(device)
@@ -167,7 +173,7 @@ class TestAttentionSystemAPI:
             assert model(dummy_input).shape == dummy_input.shape
 
     @controlled_test(CATEGORY, MODULE)
-    def test_invalid_varient_raises(self, test_config):
+    def test_attn_cfg_invalid_varient_raises(self, test_config):
         with pytest.raises(ValueError, match="Unknown attention type"):
             bad_cfg = OmegaConf.create({
                 "kind": "invalid",

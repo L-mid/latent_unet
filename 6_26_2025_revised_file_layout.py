@@ -96,6 +96,7 @@ latent_unet_v1/
 │   │   └── test_ddpm_ddim_edm.py
 │   │
 │   ├── end_to_end/
+│   │   ├── test_cuda_health.py
 │   │   ├── test_training_pipeline.py
 │   │   └── test_sampling_loop.py
 │   │

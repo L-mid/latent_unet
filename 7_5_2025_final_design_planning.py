@@ -5535,12 +5535,12 @@ class TestFiLMResBlock:
         
 # ----- Normalization Test Group -----
 
-    @pytest.mark.parametrize("norm_type", NORM_TYPES)
-    def test_norm_layer_output_stability(self, norm_type):
-        norm = get_norm(norm_type, num_channels=64)
-        x = torch.randn(8, 64, 32, 32)
-        y = norm(x)
-        assert torch.isfinite(y).all(), f"{norm_type} norm produced NaNs"
+@pytest.mark.parametrize("norm_type", NORM_TYPES)
+def test_norm_layer_output_stability(self, norm_type):
+    norm = get_norm(norm_type, num_channels=64)
+    x = torch.randn(8, 64, 32, 32)
+    y = norm(x)
+    assert torch.isfinite(y).all(), f"{norm_type} norm produced NaNs"
 
 
 # --- Snapshot Test ---
@@ -7350,6 +7350,64 @@ if __name__ == "__main__":
 
 """
 
+# File: test_cuda_health.py
+"""
+import pytest
+import torch
+from helpers.test_utils import controlled_test
+from model.build_unet import build_unet_from_config
+
+CATEGORY = "health"
+MODULE = "cuda"
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
+@controlled_test(CATEGORY, MODULE)
+def test_unet_cuda_forward_no_nan(test_config, unet_config):
+    # Basic CUDA smoke test: forward pass runs, no NaNs/Infs.
+    model = build_unet_from_config(unet_config).cuda()
+    model.eval()
+
+    dummy_input = torch.randn(2, unet_config.model.in_channels, 64, 64, device="cuda")
+    with torch.no_grad():
+        out = model(dummy_input)
+
+    assert torch.isfinite(out).all(), "Non-finite values in output (NaN/Inf)"
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
+@controlled_test(CATEGORY, MODULE)
+def test_unet_amp_autocast_forward(test_config, unet_config):
+    # test_unet_amp_autocast_forward(test_config, unet_config):
+    model = build_unet_from_config(unet_config).cuda()
+    model.eval()
+
+    dummy_input = torch.randn(2, unet_config.model.in_channels, 64, 64, device="cuda")
+    with torch.autocast(device_type="cuda", dtype=torch.float16):
+        with torch.no_grad():
+            out = model(dummy_input)
+
+    assert torch.isfinite(out).all(), "AMP output contains NaN/Inf" 
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
+@controlled_test(CATEGORY, MODULE)
+def test_unet_output_consistency_vs_cpu(test_config, unet_config):
+    # Compare CPU and CUDA outputs (sanity, not exact match).
+    model_cpu = build_unet_from_config(unet_config).cpu().eval()
+    model_gpu = build_unet_from_config(unet_config).cuda().eval()
+
+    input_cpu = torch.randn(1, unet_config.model.in_channels, 64, 64)
+    input_gpu = input_cpu_clone().cuda()
+
+    with torch.no_grad():
+        out_cpu = model_cpu(input_cpu)
+        out_gpu = model_gpu(input_gpu).cpu()
+
+    torch.testing.assert_close(out_cpu.float(), out_gpu.float(), rtol=1e-3, atol=1e-3)  
+      
+
+
+"""
 
 #           / helpers/
 

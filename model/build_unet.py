@@ -1,12 +1,12 @@
 
 from model.unet import UNet
 from modules.time_embedding import get_time_embedding
-from modules.residual_block import get_residual_block
+from modules.residual_block import get_resblock
 from modules.down_block import DownBlock
 from modules.mid_block import MidBlock
 from modules.up_block import UpBlock
 from modules.final_head import FinalHead
-from modules.attention.registry import register_attention
+from modules.attention.registry import get_attention
 
 def build_unet_from_config(cfg):
     # Time Embedding
