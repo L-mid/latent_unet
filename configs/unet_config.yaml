@@ -45,8 +45,9 @@ attention:
 
 resblock: 
   kind: "vanilla"   # also "convnext", "film", etc in future
-  norm: "group"
-  use_scale_shift_norm: false
+  params: 
+    norm: "group"
+    use_scale_shift_norm: false #NO I didn't put params... needs to be added
 
 time_embedding:
   kind: "sinusoidal"  # "sinusoidal" | "film" | "learned"

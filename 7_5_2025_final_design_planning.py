@@ -1313,23 +1313,55 @@ class FlashAttention(BaseAttention):
 """
 # MidBlock Sample:
 """
+import torch
 import torch.nn as nn
-from .res_block import ResidualBlock
-form .attention import AttentionBlock
+from modules.residual_block import get_resblock
+from modules.attention.registry import get_attention
 
 class MidBlock(nn.Module):
-    def __init__(self, channels, time_emb_dim, use_attention=True)
+    def __init__(self, dim, time_embed_dim, resblock, attention):
         super().__init__()
-        self.block1 = ResidualBlock(channels, channels, time_emb_dim, use_attention=use_attention)
-        self.attn = AttentionBlock(channels) if use_attention else nn.Identity()
-        self.block2 = ResidualBlock(channels, channels, time_emb_dim, use_attention=False)
+
+        # Build first ResBlock (no attention)
+        self.res1 = get_resblock(
+            kind=resblock.kind,
+            in_ch=dim,
+            out_ch=dim,
+            time_dim=time_embed_dim,
+            norm_type=resblock.norm_type,
+            attention_layer=None
+        )
+
+        # Optional Attention
+        if attention.use_attention:
+            self.attn = get_attention(
+                kind=attention.kind,
+                dim=dim,
+                heads=attention.heads,
+                dim_head=attention.dim_head
+            )
+        else:
+            self.attn = None
+
+        # Build second ResBlock (no attn)
+        self.res2 = get_resblock(
+            kind=resblock.kind
+            in_ch=dim,
+            out_ch=dim,
+            time_dim=time_embed_dim,
+            norm_type=resblock.norm_type,
+            attention_layer=None
+        )
 
     def forward(self, x, t_emb):
-        x = self.block1(x, t_emb)
-        x = self.attn(x)
-        x = self.block2(x, t_emb)
+        x = self.res1(x, t_emb)
+        if self.attn:
+            x = self.attn(x)
+        x = self.res2(x, t_emb)
         return x
+
 """
+
 
 # File: down_block.py -----------------------------------------------------------
 # Notes:

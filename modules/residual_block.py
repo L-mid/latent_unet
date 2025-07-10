@@ -2,9 +2,7 @@
 import torch
 import torch.nn as nn
 from typing import Callable, Dict
-from einops import rearrange
-from modules.attention.registry import get_attention
-from modules.attention.vanilla_attention import VanillaAttention    # direct import for now
+from einops import rearrange    
 from modules.norm_utils import get_norm_layer
 
 # consider implementing debugging as in inital one
@@ -26,10 +24,10 @@ def register_block(name: str):
 # ----------------------------------------------------------------------------------
 
 class BaseResBlock(nn.Module):
-    def __init__(self, in_ch, out_ch, time_dim, norm_type="group", use_attention=False):
+    def __init__(self, in_ch, out_ch, time_dim, norm_type="group", attention_layer=None):
         super().__init__()
         self.in_ch, self.out_ch = in_ch, out_ch
-        self.use_attention = use_attention
+        self.attn = attention_layer
 
         self.norm1 = get_norm_layer(norm_type, in_ch)
         self.act1 = nn.SiLU()
@@ -43,9 +41,6 @@ class BaseResBlock(nn.Module):
 
         self.res_conv = nn.Conv2d(in_ch, out_ch, 1) if in_ch != out_ch else nn.Identity()
 
-        if use_attention:
-            self.attn = VanillaAttention()
-
 
     def forward(self, x, t_emb):
         h = self.conv1(self.act1(self.norm1(x)))
@@ -53,7 +48,7 @@ class BaseResBlock(nn.Module):
         h = self.conv2(self.act2(self.norm2(h)))
 
         h += self.res_conv(x)
-        if self.use_attention:
+        if self.attn:
             h = self.attn(h)
 
         return h
@@ -64,8 +59,8 @@ class BaseResBlock(nn.Module):
 
 @register_block("film")
 class FiLMResBlock(BaseResBlock):
-    def __init__(self, in_ch, out_ch, time_dim, norm_type="group", use_attention=False):
-        super().__init__(in_ch, out_ch, time_dim, norm_type, use_attention)
+    def __init__(self, in_ch, out_ch, time_dim, norm_type="group", attention_layer=None):
+        super().__init__(in_ch, out_ch, time_dim, norm_type, attention_layer)
 
         self.time_proj = nn.Linear(time_dim, in_ch * 2)
 
@@ -81,7 +76,7 @@ class FiLMResBlock(BaseResBlock):
         h = self.conv2(h)
 
         h += self.res_conv(x)
-        if self.use_attention:
+        if self.attn:
             h = self.attn(h)
         return h
 
@@ -98,10 +93,14 @@ class VanillaResBlock(BaseResBlock):
 # ResBlock Getter
 # ----------------------------------------------------------------------------------------
 
-def get_resblock(kind: str, in_ch: int, out_ch: int, time_dim: int, norm_type: str, use_attention: bool):
+def get_resblock(cfg, in_ch: int, out_ch: int, time_dim: int):
+    kind = cfg.kind
     if kind not in BLOCK_REGISTRY:
-        raise ValueError(f"Unknowed ResBlock type: {kind}")
-    return BLOCK_REGISTRY[kind](in_ch, out_ch, time_dim, norm_type, use_attention)
+        raise ValueError(f"Unknown ResBlock type: {kind}")
+    
+    params = cfg.get("params", {})
+
+    return BLOCK_REGISTRY[kind](in_ch, out_ch, time_dim, **params)
 
 
 

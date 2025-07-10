@@ -18,18 +18,18 @@ latent_unet_v1/
 │   └── unet.py  
 
 ├── modules/
-│   ├── time_embedding.py
-│   ├── residual_block.py
+│   ├── time_embedding.py 🔹
+│   ├── residual_block.py 🔹
 │   ├── mid_block.py
 │   ├── down_block.py
 │   ├── up_block.py
 │   ├── final_head.py
-│   ├── norm_utils.py
-│   └── attention/
-│       ├── base_attention.py
-│       ├── vanilla_attention.py
-│       ├── window_attention.py
-│       └── flash_attention.py
+│   ├── norm_utils.py 🔹
+│   └── attention/ 
+│       ├── base_attention.py 🔹
+│       ├── vanilla_attention.py 🔹
+│       ├── window_attention.py 🔹
+│       └── flash_attention.py 🔹
 
 ├── diffusion/
 │   ├── ddpm.py
@@ -85,6 +85,7 @@ latent_unet_v1/
 │   │   ├── test_time_embedding.py
 │   │   ├── test_residual_block.py
 │   │   ├── test_attention_block.py
+│   │   ├── test_midblock.py
 │   │   ├── test_down_block.py
 │   │   ├── test_up_block.py
 │   │   └── test_final_head.py
