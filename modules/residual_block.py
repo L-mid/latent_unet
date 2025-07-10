@@ -94,7 +94,9 @@ class VanillaResBlock(BaseResBlock):
 # ----------------------------------------------------------------------------------------
 
 def get_resblock(cfg, in_ch: int, out_ch: int, time_dim: int):
-    kind = cfg.kind
+    cfg = cfg or {}     # fallback to empty dict
+    kind = cfg.get("kind", "vanilla")
+    
     if kind not in BLOCK_REGISTRY:
         raise ValueError(f"Unknown ResBlock type: {kind}")
     
