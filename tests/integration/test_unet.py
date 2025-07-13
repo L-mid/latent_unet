@@ -55,7 +55,7 @@ class TestUNetBasic:
         self.x = self.x.to(device)
         self.t = self.t.to(device)
         out = self.unet(self.x, self.t)
-        assert out.device == device
+        assert out.device == torch.device(device)
         
 
 # ------------------------------
