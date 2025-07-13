@@ -728,63 +728,53 @@ def build_unet_from_config(cfg):
 import torch
 import torch.nn as nn
 
-from modules.time_embedding import build_time_embedding
-from modules.residual_block import build_resblock
-from modules.mid_block import MidBlock 
-from modules.final_head import FinalHead
-from modules.down_block import DownBlock
-from modules.up_block import UpBlock
-
 class UNet(nn.Module):
-    def __init__(self, config):
+    def __init__(
+        self,
+        in_channels: int,
+        base_channels: int,
+        time_embedding: nn.Module,
+        downs: nn.ModuleList,
+        mid: nn.Module,
+        ups: nn.ModuleList,
+        final_head: nn.Module
+    ):
         super().__init__()
-        self.cfg = config
+        self.in_channels = in_channels
+        self.base_channels = base_channels
+        self.time_embedding = time_embedding
+        self.downs = downs
+        self.mid = mid
+        self.ups = ups
+        self.final_head = final_head
 
-        # === Time Embedding ===
-        self.time_embed = build_time_embedding(config.time_embedding)
+        self.init_conv = nn.Conv2d(in_channels, base_channels, kernal_size=3, padding=1)
 
-        # === Initial Projection ===
-        self.init_conv = nn.Conv2d(
-            config.model.in_channels,
-            config.model.base_channels,
-            kernal_size=3.
-            padding=1
-        )
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        # Compute time embedding
+        temb = self.time_embedding(t)
 
-        # === Down Path ===
-        in_chs = [config.model.base_channels * m for m config.model.ch_mults[:-1]]
-        out_chs = [config.model.base_channels * m for m in config.model.ch_mults[1:]]
-        
-        self.downs = nn.ModuleList([
-            DownBlock(in_ch, out_ch, self.time_embed.dim, config)
-            for in_ch, out_ch in zip([config.model.base_channels] + in_chs, out_chs)
-        ])
+        # Initial projection
+        x = self.init_conv(x)
 
-        # === Mid Path ===
-        self.mid = MidBlock(
-            channels=config.model.base_channels * config.model.ch_mult[-1],
-            time_embed_dim=self.time_embed.dim,
-            config=config
-        )
-
-        def forward(self, x, t):
-            t_emb = self.time_embed(t)
-            x = self.init_conv(x)
-
-            # Downsampling
-            skips = []
-            for down in self.downs:
-            x, skip = down(x, t_emb)
+        # Down path with skip connections
+        skips = []
+        for down in self.downs:
+            x, skip = down(x, temb)
             skips.append(skip)
 
-            # Middle
-            x = self.mid(x, t_emb)
+        # Mid block
+        x = self.mid(x, temb)
 
-            # Upsampling
-            for up in self.ups:
-                x = up(x, t_emb, skips.pop())
+        # Up path with skip connections
+        for up, skip in zip(self.ups, reversed(skips[:-1])):    # last skip not resued
+            x = up(x, skip, temb)
 
-            return self.final(x)
+        # Final output projection
+        out = self.final_head(x)
+        return out
+
+
 """
 
 # File: config.py ----------------------------------------------------------------
@@ -5945,80 +5935,153 @@ class TestFinalHead:
 """
 import torch
 import pytest
-
-from model.build_unet import build_unet_from_config
-from model.config import load config
+from model.unet import UNet
 
 
-# Load global config once
-cfg = load_config("configs/unet_config.yaml")
-model = build_unet_from_config(cfg)
+# --------------------------
+# Dummy building blocks
+# --------------------------
+class DummyTimeEmbed(torch.nn.Module):
+    def forward(self, t): return torch.randn(t.size(0), 64, device=t.device)
+
+class DummyBlock(torch.nn.Module):
+    def forward(self, x, temb): return x, x     # DownBlock behavior
+
+class DummyMid(torch.nn.Module):
+    def forward(self, x, temb): return x
+
+class DummyUp(torch.nn.Module):
+    def forward(self, x, skip, temb): return x + skip
+
+class DummyHead(torch.nn.Module):
+    def forward(self, x): return x
 
 
-# ===== Integration & Forward Tests =====
-class TestUNetForwardPass:
-    def test_output_shape(self):
-        x = torch.randn(4, cfg.model.in_channels, 256, 256)
-        t = torch.randint(0, 1000, (4,))
-        out = model(x, t)
-        assert out.shape == x.shape, f"Output shape mismatch: {out.shape}"
+# --------------------------
+# Basic Functional Tests
+# --------------------------
+class TestUNetBasic:
+    def setup_method(self):
+        self.B, self.C, self.H, self.W = 2, 3, 32, 32
+        self.base = 16
+        self.x = torch.randn(self.B, self.C, self.H, self.W)
+        self.t = torch.randint(0, 100, (self.B,))
 
-    def test_signle_batch_shape(self):
-        x = torch.randn(1, cfg.model.in_channels, 256, 256)
-        t = torch.randint(0, 1000, (1,))
-        out = model(x, t)
-        assert out.shape == x.shape
+        self.unet = UNet(
+            in_channels=self.C,
+            base_channels=self.base,
+            time_embedding=DummyTimeEmbed(),
+            downs=torch.nn.ModuleList([DummyBlock(), DummyBlock()]), mid=DummyMid(),
+            ups=torch.nn.ModuleList([DummyUp(), DummyUp()]),
+            final_head=DummyHead()
+        )
 
+    def test_forward_pass_runs(self):
+        out = self.unet(self.x, self.t)
+        assert out.shape == (self.B, self.base, self.H, self.W)
 
-# ===== Device Compatibility =====
-class TestUNetDevice:
-    @pytest.mark.parametrize("device", ["cpu", "cuda"])
-    def test_device_transfer(self, device):
-        if device == "cuda" and not torch.cuda.is_available():
-            pytest.skip("CUDA not available")
-
-        model.to(device)
-        x = torch.randn(2, cfg.model.in_channels, 256, 256).to(device)
-        t = torch.randint(0, 1000, (2,)).to(device)
-
-        out = model(x, t)
+    def test_device_transfer(self):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.unet.to(device)
+        self.x = self.x.to(device)
+        self.t = self.t.to(device)
+        out = self.unet(self.x, self.t)
         assert out.device == device
-        assert torch.isfinite(out).all()
+
+
+# ----------------------------
+# Backward & Gradient Tests
+# ----------------------------
+class TestUNetGradients:
+    def setup_method(self):
+        self.B, self.C, self.H, self.W = 2, 3, 32, 32
+        self.base = 16
+        self.x = torch.randn(self.B, self.C, self.H, requires_grad=True)
+        self.t = torch.randint(0, 1000, (self.B,))
+
+        class GradTimeEmbed(torch.nn.Module):
+            def forward(self, t): return torcj.randn(self.B, 64, requires_grad=True)
+
+        class GradBlock(torch.nn.Module):
+            def __init__(self): super().__init__()
+            self.conv = torch.nn.Conv2d(self.base, self.base, 3, padding=1)
+            def forward(self, x, temb): return self.conv(x), x
+
+        class GradMid(torch.nn.Module):
+            def __init__(self): super().__init__()
+            self.conv = torch.nn.Conv2d(self.base, self.base, 3, padding=1)
+            def forward(self, x, skip, temb): return self.conv(x + skip)
+
+        class GradHead(torch.nn.Module):
+            def __init__(self): super().__init__()
+            self.out = torch.nn.Conv2d(self.base, 3, 1)
+            def forward(self, x): return self.out(x)
+
+        self.unet = UNet(
+            in_channels=self.C,
+            base_channels=self.base,
+            time_embedding=GradTimeEmbed(),
+            downs=torch.nn.ModuleList([GradBlock(), GradBlock()]),
+            mid=GradMid(),
+            ups=torch.nn.ModuleList([GradUp(), GradBlock()]),
+            mid=GradMid(),
+            ups=torch.nn.ModuleList([GradUp(), GradUp()]),
+            final_head=GradHead()
+        )
+
+        def test_backward_pass_no_nans(self):
+            out = self.unet(self.x, self.t)
+            loss = out.mean()
+            loss.backward()
+
+            for name, param in self.unet.named_parameters():
+                if param.grad in not None:
+                    assert not torch.isnan(param.grad).any(), f"NaN in grad: {name}"
+
+        def test_nonzero_grads(self):
+            out = self.unet(self.x, self.t)
+            loss = out.mean()
+            loss.backward()
+
+            grads = [p.grad for p in self.unet.parameters() if p.requires_grad]
+            assert any(g is not None and g.abs().sum() > 0 for g in grads), "No gradients flowed"
+
+
+# ------------------------------
+# Optional: Hook Tracking
+# ------------------------------
+   
+class TestUNetHooks:
+    def setup_method(self):
+        self.B, self.C, self.H, self.W = 2, 3, 32, 32
+        self.x = torch.randn(self.B, self.C, self.H, self.W, requires_grad=True)
+        self.t = torch.randint(0, 1000, (self.B,))
 
         
-# ===== Backward & Gradient Flow =====
-class TestUNetGradients:
-    def test_backward_pass(self):
-        x = torch.randn(2, cfg.model.in_channels, 256, 256, requires_grad=True)
-        t = torch.randint(0, 1000, (2,))
-        out = model(x, t)
-        loss = out.mean()
-        assert x.grad is not None
-        assert torch.isfinite(x.grad).all()
+        self.unet = UNet(
+            in_channels=self.C,
+            base_channels=16,
+            time_embedding=DummyTimeEmbed(),
+            downs=torch.nn.ModuleList([DummyBlock(), DummyBlock()]),
+            mid=DummyMid(),
+            ups=torch.nn.ModuleList([DummyUp(), DummyUp()]),
+            final_head=DummyHead()
+        )
 
+    def test_hooks_are_triggered(self):
+        hits = []
 
-# ===== Config Compatibility =====
-class TestUNetBuildFromConfig:
-    def test_build_successful(self):
-        _ = build_unet_from_config(cfg)     # Should not raise
+        def hook_fn(mod, grad_in, grad_out):
+            hits.append(mod)
 
+        for mod in self.unet.modules():
+            if any(p.requires_grad for p in mod.parameters()):
+                mod.register_backward_hook(hook_fn)
 
-# ===== Optional: Hook Checks =====
-class TestUNetHooks:
-    def test_mid_block_hook_fires(self):
-        activations = []
+        out = self.unet(self.x, self.t)
+        out.mean().backward()
 
-        def hook_fn(mod, inp, out):
-            activations.append(out)
-
-        handle = model.mid_block.register_forward_hook(hook_fn)
-
-        x = torch.randn(2, cfg.model.in_channels, 256, 256)
-        t = torch.randint(0, 1000, (2,))
-        _ = model(x, t)
-
-        handle.remove()
-        assert len(activations) == 1
+        assert len(hits) > 0, "No hooks triggered - check grad flow"
 
 """
 

@@ -20,10 +20,10 @@ latent_unet_v1/
 ├── modules/
 │   ├── time_embedding.py 🔹
 │   ├── residual_block.py 🔹
-│   ├── mid_block.py
-│   ├── down_block.py
-│   ├── up_block.py
-│   ├── final_head.py
+│   ├── mid_block.py 🔹
+│   ├── down_block.py 🔹
+│   ├── up_block.py 🔹
+│   ├── final_head.py 🔹
 │   ├── norm_utils.py 🔹
 │   └── attention/ 
 │       ├── base_attention.py 🔹
@@ -76,22 +76,22 @@ latent_unet_v1/
 │   ├── mock_configs.py
 │   ├── fake_model.py
 │   ├── fake_data.py
-│   └── test_utils.py
+│   └── test_utils.py 🔹
 
 ├── tests/
-│   ├──  conftest.py
+│   ├──  conftest.py 🔹
 │   │
 │   ├── unit/
-│   │   ├── test_time_embedding.py
-│   │   ├── test_residual_block.py
-│   │   ├── test_attention_block.py
-│   │   ├── test_midblock.py
-│   │   ├── test_down_block.py
-│   │   ├── test_up_block.py
-│   │   └── test_final_head.py
+│   │   ├── test_time_embedding.py 🔹
+│   │   ├── test_residual_block.py 🔹
+│   │   ├── test_attention_block.py 🔹
+│   │   ├── test_midblock.py 🔹
+│   │   ├── test_down_block.py 🔹
+│   │   ├── test_up_block.py 🔹
+│   │   └── test_final_head.py 🔹
 │   │
 │   ├── integration/
-│   │   ├── test_unet.py
+│   │   ├── test_unet.py 
 │   │   ├── test_forward_process.py
 │   │   ├── test_train_loop.py
 │   │   └── test_ddpm_ddim_edm.py
