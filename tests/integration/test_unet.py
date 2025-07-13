@@ -50,7 +50,7 @@ class TestUNetBasic:
         assert out.shape == (self.B, self.base, self.H, self.W)
 
     def test_device_transfer(self):
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.unet.to(device)
         self.x = self.x.to(device)
         self.t = self.t.to(device)
