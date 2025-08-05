@@ -14,7 +14,7 @@ class WindowAttention(BaseAttention):
         norm_groups = None, 
         dim_head = None, 
         start_layer = 0, 
-        window_size = 8, 
+        window_size = 4, 
         backend = None, 
         **kwargs
     ):

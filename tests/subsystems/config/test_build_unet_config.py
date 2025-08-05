@@ -44,10 +44,6 @@ def test_build_unet_config_with_mocked_modules(cfg, test_config):
             from model.build_unet import build_unet_from_config
 
             # Sanity test: config parsing + builder logic runs
-
-            print("model.build_unet" in sys.modules)
-            print("model.unet" in sys.modules) # both true
-
             model = build_unet_from_config(cfg)
             assert model == "mocked_unet"
 
@@ -69,7 +65,7 @@ def test_build_unet_config_with_mocked_modules(cfg, test_config):
                 assert "out_ch" in call_args.kwargs
                 assert "apply_attention" in call_args.kwargs
 
-            print("\n--- DownBlock Channel Configurations ---")
+            print("\n[Test Build Unet] --- DownBlock Channel Configurations ---")
             for i, call_args in enumerate(mock_downblock.call_args_list):
                 in_ch = call_args.kwargs["in_ch"]
                 out_ch = call_args.kwargs["out_ch"]
@@ -82,7 +78,7 @@ def test_build_unet_config_with_mocked_modules(cfg, test_config):
                 assert "out_ch" in call_args.kwargs
                 assert "apply_attention" in call_args.kwargs
 
-            print("\n--- UpBlock Channel Configureations ---")
+            print("\n[Test Build Unet] --- UpBlock Channel Configureations ---")
             for i, call_args in enumerate(mock_upblock.call_args_list):
                 in_ch = call_args.kwargs["in_ch"]
                 out_ch =  call_args.kwargs["out_ch"]

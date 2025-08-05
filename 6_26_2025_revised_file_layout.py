@@ -15,7 +15,7 @@ latent_unet_v1/
 ├── model/
 │   ├── config.py 🔹
 │   ├── build_unet.py 🔹
-│   └── unet.py  
+│   └── unet.py 🔹 
 
 ├── modules/
 │   ├── time_embedding.py 🔹
@@ -91,7 +91,7 @@ latent_unet_v1/
 │   │   └── test_final_head.py 🔹
 │   │
 │   ├── integration/
-│   │   ├── test_unet.py 
+│   │   ├── test_unet.py 🔹
 │   │   ├── test_forward_process.py
 │   │   ├── test_train_loop.py
 │   │   └── test_ddpm_ddim_edm.py

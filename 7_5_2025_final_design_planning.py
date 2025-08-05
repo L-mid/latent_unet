@@ -7328,6 +7328,97 @@ def test_structured_omegaconf_roundtrip(full_cfg):
 
 """
 
+# File: test_build_unet.py
+"""
+import torch
+import pytest 
+from model.build_unet import build_unet_from_config
+
+
+# --------------------------------------------------------------
+# Shared Fixture: Real UNet Model from Config
+# --------------------------------------------------------------
+@pytest.fixture(scope="module")
+def model_and_config(unet_config):
+    model = build_unet_from_config(unet_config)
+    model.eval()
+    return model, unet_config
+
+
+# --------------------------------------------------------------
+# Basic Model-Level Integration
+# --------------------------------------------------------------
+class TestUNetIntegration:
+    def test_forward_pass_runs(self, model_and_config):
+        model, cfg = model_and_config
+        x = torch.randn(2, cfg.model.in_channels, 32, 32)
+        t = torch.randint(0, 1000, (2,))
+        out = model(x, t)
+
+        assert out.shape == x.shape
+        assert torch.isfinite(out).all()
+
+        
+    def test_backward_pass_runs(self, model_and_config):
+        model, cfg = model_and_config
+        x = torch.randn(2, cfg.model.in_channels, 32, 32, requires_grad=True)
+        t = torch.randint(0, 100, (2,))
+        out = model(x, t)
+        loss = out.mean()
+        loss.backward()
+
+        grads = [p.grad for p in model.parameters() if p.requires_grad]
+        assert any(g is not None and g.abs().sum() > 0 for g in grads), "No gradients flowed"
+
+
+
+# -----------------------------------------------------------
+# Skip Connection Logic
+# -----------------------------------------------------------
+class TestSkipShapeFlow:
+    def test_skip_shapes_match(self, model_and_config):
+        model, cfg = model_and_config
+        x = torch.randn(1, cfg.model.in_channels, 64, 64)
+        t = torch.randint(0, 1000, (1,))
+
+        skip_shapes = []
+
+        def record_skip_shapes(mod, inp, out):
+            if isinstance(out, tuple):
+                skip_shapes.append(out[1].shape)
+
+        for mod in model.downs:
+            mod.register_forward_hook(record_skip_shapes)
+
+        model(x, t)
+
+        for i, (up, skip_shape) in enumerate(zip(model.ups, reversed(skip_shapes[:-1]))):
+            assert skip_shape is not None
+            # Optional: check spatial size or channel count
+            assert all(s > 1 for s in skip_shape[2:]), f"Invalid skip shape at layer {i}"
+
+
+# --------------------------------------------------
+# Attention/ResBlock Variant Coverage
+# --------------------------------------------------
+class TestAttentionVariantIntegration:
+    @pytest.mark.parametrize("attn_type", ["none", "vanilla", "window", "flash"])
+    def test_resblock_with_attention_variants_runs(self, attn_type, unet_config):
+        cfg = unet_config.copy()
+        cfg.attention.type = attn_type
+
+        model = build_unet_from_config(cfg)
+        model.eval()
+
+        x = torch.randn(2, cfg.model.in_channels, 32, 32)
+        t = torch.randint(0, 1000, (2,))
+        out = model(x, t)
+
+        assert out.shape == x.shape
+        assert torch.isfinite(out).all()
+
+"""
+
 # File: conftest.py
 """
 import pytest

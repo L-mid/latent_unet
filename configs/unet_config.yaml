@@ -33,21 +33,24 @@ model:
   num_res_blocks: 2
 
 attention:
-  kind: "vanilla"   # "vanilla" | "linear" | "flash"
+  kind: "vanilla"   # "vanilla" | "linear" | "flash" | "none"
+  per_block:
+    down: [false, true, true, false]
+    up: [false, true, false]
   params:
-    dim: 64 
     num_heads: 8
     norm_groups: 8      
     dim_head: null    # Not currently used
     start_layer: 2    # apply at downsample levels 1 and 2
-    window_size: 7
+    window_size: 4
+    midblock: true
     backend: "auto"  # auto | flash_only | fallback_only
 
 resblock: 
   kind: "vanilla"   # also "convnext", "film", etc in future
   params: 
-    norm: "group"
-    use_scale_shift_norm: false #NO I didn't put params... needs to be added
+    norm_type: "group"
+    use_scale_shift_norm: false 
 
 time_embedding:
   kind: "sinusoidal"  # "sinusoidal" | "film" | "learned"
@@ -61,6 +64,8 @@ midblock:
 updown:
   conv_type: "standard"   # could be "resample", "convnext_down", etc in future 
   use_skip_connections: true
+  num_layers: 2
+  expect_skip: true  # only works if true
 
 final_head:
   use_norm: true
@@ -177,6 +182,7 @@ logging:
 # --- Debugging ---
 
 debug:
+  enabled: true
   enable_verbose_logs: true
 
 

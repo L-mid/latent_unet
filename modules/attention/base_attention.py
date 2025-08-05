@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from abc import ABC, abstractmethod
 
+
 class BaseAttention(nn.Module, ABC):
     # Abstract base class for attention blocks.
     # All attention subclasses (Vanilla, flash, windowed, etc.) should inherit from this.
@@ -47,8 +48,6 @@ class BaseAttention(nn.Module, ABC):
             f"dim_head={self.dim_head}, start_layer=(self.start_layer), "
             f"window_size={self.window_size}, backend={self.backend}"
         )
-
-
 
 
 

@@ -42,7 +42,6 @@ class VanillaAttention(BaseAttention):
 
         # QKV projection
         qkv = self.qkv(x).chunk(3, dim=1)           # 3 x [b, heads*dim, n]
-        print([t.shape for t in qkv])
 
         for t in qkv:
             assert t.shape[1] % self.num_heads == 0, f"Incompatible head split: {t.shape[1]} not divisible by {self.num_heads}"

@@ -24,7 +24,7 @@ def register_block(name: str):
 # ----------------------------------------------------------------------------------
 
 class BaseResBlock(nn.Module):
-    def __init__(self, in_ch, out_ch, time_dim, norm_type="group", attention_layer=None):
+    def __init__(self, in_ch, out_ch, time_dim, norm_type="group", attention_layer=None, use_scale_shift_norm=None):
         super().__init__()
         self.in_ch, self.out_ch = in_ch, out_ch
         self.attn = attention_layer

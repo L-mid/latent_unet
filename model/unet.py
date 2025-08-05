@@ -41,7 +41,7 @@ class UNet(nn.Module):
         x = self.mid(x, temb)
 
         # Up path with skip connections
-        for up, skip in zip(self.ups, reversed(skips[:-1])):    # last skip not reused
+        for up, skip in zip(self.ups, reversed(skips)):  
             x = up(x, skip, temb)
 
         # Final output ptojection
