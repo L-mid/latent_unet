@@ -54,16 +54,16 @@ def test_build_unet_config_with_mocked_modules(cfg, test_config):
             mock_midblock.assert_called_once()
             mid_args = mock_midblock.call_args.kwargs
             assert mid_args["dim"] > 0
-            assert mid_args["resblock"] == cfg.resblock
-            assert mid_args["attention"] == cfg.attention
+            assert mid_args["resblock_cfg"] == cfg.resblock
+            assert mid_args["attention_cfg"] == cfg.attention
 
             # ---- Down Blocks ----
-            expected_down_blocks = len(cfg.model.channel_multipliers)
+            expected_down_blocks = len(cfg.model.channel_multipliers) - 1
             assert mock_downblock.call_count == expected_down_blocks
             for call_args in mock_downblock.call_args_list:
                 assert "in_ch" in call_args.kwargs
                 assert "out_ch" in call_args.kwargs
-                assert "apply_attention" in call_args.kwargs
+                assert "use_attention" in call_args.kwargs
 
             print("\n[Test Build Unet] --- DownBlock Channel Configurations ---")
             for i, call_args in enumerate(mock_downblock.call_args_list):
@@ -72,11 +72,11 @@ def test_build_unet_config_with_mocked_modules(cfg, test_config):
                 print(f"DownBlock {i}: in_ch={in_ch}, out_ch={out_ch}")
 
             # ---- Up Blocks ----
-            assert mock_upblock.call_count == expected_down_blocks - 1
+            assert mock_upblock.call_count == expected_down_blocks 
             for call_args in mock_upblock.call_args_list:
                 assert "in_ch" in call_args.kwargs
                 assert "out_ch" in call_args.kwargs
-                assert "apply_attention" in call_args.kwargs
+                assert "use_attention" in call_args.kwargs
 
             print("\n[Test Build Unet] --- UpBlock Channel Configureations ---")
             for i, call_args in enumerate(mock_upblock.call_args_list):
