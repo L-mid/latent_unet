@@ -27,7 +27,7 @@ def build_unet_from_config(cfg):
     time_emb_dim=cfg.time_embedding.params.dim,
     midblock_cfg=cfg.midblock,
     resblock_cfg=cfg.resblock,
-    attention_cfg=cfg.attention
+    attention_cfg=cfg.attention 
     )
 
     # Down Blocks
@@ -41,7 +41,7 @@ def build_unet_from_config(cfg):
             num_layers=cfg.updown.num_layers,
             debug_enabled=cfg.debug.enabled,
             resblock_cfg=cfg.resblock,
-            attention_cfg=cfg.attention, #
+            attention_cfg=cfg.attention, 
             use_attention=(i >= cfg.attention.params.start_layer),
         )
         for i in range(0)
@@ -55,7 +55,7 @@ def build_unet_from_config(cfg):
             num_layers=cfg.updown.num_layers,
             debug_enabled=cfg.debug.enabled,
             resblock_cfg=cfg.resblock,
-            attention_cfg=cfg.attention, #
+            attention_cfg=cfg.attention, 
             use_attention=(i >= cfg.attention.params.start_layer),
         )
         for i, (in_c, out_c) in enumerate(zip(in_channels, out_channels))
@@ -81,7 +81,7 @@ def build_unet_from_config(cfg):
                 num_layers=cfg.updown.num_layers,
                 debug_enabled=cfg.debug.enabled,       
                 resblock_cfg=cfg.resblock,
-                attention_cfg=cfg.attention, #
+                attention_cfg=cfg.attention, 
                 use_attention=(i >= cfg.attention.params.start_layer)
             )
         )

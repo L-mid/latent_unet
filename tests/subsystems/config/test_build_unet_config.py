@@ -3,9 +3,9 @@ import sys
 from unittest.mock import MagicMock
 from helpers.test_utils import controlled_test
 from model.config import load_config
-from helpers.patch_context import patch_module_attr
-
 import pytest
+import torch.nn as nn
+
 
 CATAGORY = "subsystems"
 MODULE = "config"
@@ -18,134 +18,104 @@ def cfg():
 @controlled_test(CATAGORY, MODULE)
 def test_build_unet_config_with_mocked_modules(cfg, test_config):
 
-    # Backup:
+    # Save original sys.modules
     original_sys_modules = sys.modules.copy()
 
-    # Strict mocks for each class/function
-    mock_time_embedding = MagicMock(return_value="mocked_time_embed")
-    mock_midblock = MagicMock(return_value="mocked_midblock")
-    mock_downblock = MagicMock(return_value="mocked_downblock")
-    mock_upblock = MagicMock(return_value="mocked_upblock")
-    mock_final_head = MagicMock(return_value="mocked_final_head")
-    mock_unet = MagicMock(return_value="mocked_unet") 
-
-    # Wipe all cached modules that import UNet early
-    for mod in ["model.unet", "model.build_unet"]:
-        sys.modules.pop(mod, None)
 
     try:
-        with patch_module_attr("modules.time_embedding", "get_time_embedding", mock_time_embedding), \
-            patch_module_attr("modules.mid_block", "MidBlock", mock_midblock), \
-            patch_module_attr("modules.down_block", "DownBlock", mock_downblock), \
-            patch_module_attr("modules.up_block", "UpBlock", mock_upblock), \
-            patch_module_attr("modules.final_head", "FinalHead", mock_final_head), \
-            patch_module_attr("model.unet", "UNet", mock_unet):
+        sys.modules.pop("model.build_unet", None)
 
-            from model.build_unet import build_unet_from_config
+        # Strict mocks for each class/function
+        mock_time_embedding = MagicMock(return_value="mocked_time_embed")
+        mock_midblock = MagicMock(return_value="mocked_midblock")
+        mock_downblock = MagicMock(return_value="mocked_downblock")
+        mock_upblock = MagicMock(return_value="mocked_upblock")
+        mock_final_head = MagicMock(return_value="mocked_final_head")
+        mock_unet = MagicMock(return_value="mocked_unet") 
 
-            # Sanity test: config parsing + builder logic runs
-            model = build_unet_from_config(cfg)
-            assert model == "mocked_unet"
+        DummyModule = type("DummyModule", (nn.Module,), {"forward": lambda self, *a, **kw: a[0] if a else None})
 
-            # ---- Time embedding ----
-            mock_time_embedding.assert_called_once_with(cfg.time_embedding)
+        # Inject mocks
+        sys.modules.update({
+            'model.unet': MagicMock(UNet=mock_unet),
+            'modules.time_embedding': MagicMock(get_time_embedding=mock_time_embedding),
+            'modules.down_block': MagicMock(DownBlock=mock_downblock),
+            'modules.up_block': MagicMock(UpBlock=mock_upblock),
+            'modules.mid_block': MagicMock(MidBlock=mock_midblock),
+            'modules.final_head': MagicMock(FinalHead=mock_final_head),
+            'modules.residual_block': MagicMock(get_resblock=MagicMock(return_value=DummyModule())),
+            'modules.attention.resgistry': MagicMock(get_attention=MagicMock(return_value=DummyModule()))
+        })
 
-            # ---- Mid block ---
-            mock_midblock.assert_called_once()
-            mid_args = mock_midblock.call_args.kwargs
-            assert mid_args["dim"] > 0
-            assert mid_args["resblock_cfg"] == cfg.resblock
-            assert mid_args["attention_cfg"] == cfg.attention
+        # Import after mocks are injected
+        from model.build_unet import build_unet_from_config 
 
-            # ---- Down Blocks ----
-            expected_down_blocks = len(cfg.model.channel_multipliers) - 1
-            assert mock_downblock.call_count == expected_down_blocks
-            for call_args in mock_downblock.call_args_list:
-                assert "in_ch" in call_args.kwargs
-                assert "out_ch" in call_args.kwargs
-                assert "use_attention" in call_args.kwargs
+        model = build_unet_from_config(cfg)
+        assert model == "mocked_unet"
 
-            print("\n[Test Build Unet] --- DownBlock Channel Configurations ---")
-            for i, call_args in enumerate(mock_downblock.call_args_list):
-                in_ch = call_args.kwargs["in_ch"]
-                out_ch = call_args.kwargs["out_ch"]
-                print(f"DownBlock {i}: in_ch={in_ch}, out_ch={out_ch}")
+        # --- Time Embedding ---
+        mock_time_embedding.assert_called_once_with(cfg.time_embedding)
 
-            # ---- Up Blocks ----
-            assert mock_upblock.call_count == expected_down_blocks 
-            for call_args in mock_upblock.call_args_list:
-                assert "in_ch" in call_args.kwargs
-                assert "out_ch" in call_args.kwargs
-                assert "use_attention" in call_args.kwargs
+        # --- MidBlock ---
+        mock_midblock.assert_called_once()
+        mid_args = mock_midblock.call_args.kwargs
+        assert mid_args == {
+            "dim": cfg.model.base_channels * cfg.model.channel_multipliers[-1],
+            "time_emb_dim": cfg.time_embedding.params.dim,
+            "midblock_cfg": cfg.midblock,
+            "resblock_cfg": cfg.resblock,
+            "attention_cfg": cfg.attention,
+            }
+        
+        # --- DownBlocks ---
+        expected_down_blocks = len(cfg.model.channel_multipliers) - 1
+        assert mock_downblock.call_count == expected_down_blocks
 
-            print("\n[Test Build Unet] --- UpBlock Channel Configureations ---")
-            for i, call_args in enumerate(mock_upblock.call_args_list):
-                in_ch = call_args.kwargs["in_ch"]
-                out_ch =  call_args.kwargs["out_ch"]
-                print(f"UpBlock {i}: in_ch={in_ch}, out_ch={out_ch}")    
+        for i, call in enumerate(mock_downblock.call_args_list):
+            args = call.kwargs
+            expected_keys = {
+                "in_ch", "out_ch", "time_emb_dim", "num_layers", "debug_enabled", "resblock_cfg", "attention_cfg", "use_attention"
+            }
+            assert set(args.keys()) == expected_keys
 
-            # ---- Final Head ----
+            # Check use_attention logic
+            assert args["use_attention"] == (i >= cfg.attention.params.start_layer)
+
+            # --- UpBlocks ---
+            assert mock_upblock.call_count == expected_down_blocks
+            for i, call in enumerate(mock_upblock.call_args_list):
+                args = call.kwargs
+                expected_keys = {
+                    "in_ch", "out_ch", "time_emb_dim", "num_layers", "debug_enabled", 
+                    "resblock_cfg", "attention_cfg", "expect_skip", "skip_channels", "use_attention"
+                } 
+                assert set(args.keys()) == expected_keys
+
+                assert args["use_attention"] == (i >= cfg.attention.params.start_layer)
+
+            # --- FinalHead ---
             mock_final_head.assert_called_once_with(cfg.model.base_channels, cfg.final_head.out_channels)
 
-            # ---- Final UNet ----
+            # --- UNet ---
             mock_unet.assert_called_once()
-            unet_kwargs = mock_unet.call_args.kwargs
-            assert unet_kwargs["final_head"] == "mocked_final_head"
-
-
-    finally:
-        for mod in ["model.unet", "model.build_unet"]:
-            if mod in original_sys_modules:
-                sys.modules[mod] = original_sys_modules[mod]
-            else:
-                sys.modules.pop(mod, None)
-
-
-
-@controlled_test(CATAGORY, MODULE)
-def test_build_unet_config_shape(cfg, test_config):
-
-        # Backup:
-    original_sys_modules = sys.modules.copy()
-
-    # Strict mocks for each class/function
-    mock_downblock = MagicMock(return_value="mocked_downblock")
-    mock_upblock = MagicMock(return_value="mocked_upblock")
-
-    try:
-        with patch_module_attr("modules.down_block", "DownBlock", mock_downblock), \
-            patch_module_attr("modules.up_block", "UpBlock", mock_upblock):
-
-            base = cfg.model.base_channels
-            mults = cfg.model.channel_multipliers
-
-            expected_down_channels = list(zip(
-                [base] + [base * m for m in mults[:-1]],
-                [base * m for m in mults]                                
-            ))
-
-            expected_up_channels = list(zip(
-                reversed([base * m for m in mults[:-1]]),
-                reversed([base * m for m in mults])                        
-            ))
-
-            # Assert each DownBlock got the correct channels
-            for call, (exp_in, exp_out) in zip(mock_downblock.call_args_list, expected_down_channels):
-                assert call.kwargs["in_ch"] == exp_in
-                assert call.kwargs["out_ch"] == exp_out
-
-
-            # Assert each UpBlock got the correct channels
-            for call, (exp_in, exp_out) in zip(mock_upblock.call_args_list, expected_up_channels):
-                assert call.kwargs["in_ch"] == exp_out * 2
-                assert call.kwargs["out_ch"] == exp_in
+            unet_args = mock_unet.call_args.kwargs
+            assert unet_args == {
+                "in_channels": cfg.model.in_channels,
+                "base_channels": cfg.model.base_channels,
+                "time_embedding": "mocked_time_embed",
+                "downs": [mock_downblock.return_value] * expected_down_blocks,
+                "mid": "mocked_midblock",
+                "ups": [mock_upblock.return_value] * expected_down_blocks,
+                "final_head": "mocked_final_head"
+            }
 
     finally:
-        for mod in ["model.unet", "model.build_unet"]:
-            if mod in original_sys_modules:
-                sys.modules[mod] = original_sys_modules[mod]
-            else:
-                sys.modules.pop(mod, None)
+        # Restore original modules to avoid polluting other tests
+        sys.modules.clear()
+        sys.modules.update(original_sys_modules)
+
+
+
 
 
     

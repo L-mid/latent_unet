@@ -9,7 +9,7 @@ class TestMidBlock:
     def dummy_cfg(self):
         cfg = {
             "dim": 64,
-            "time_embed_dim": 128,
+            "time_emb_dim": 128,
             "midblock": {
                 "use_attention": True,
             },
@@ -22,7 +22,6 @@ class TestMidBlock:
             "attention": {
                 "kind": "vanilla",
                 "params": {
-                    "dim": 64,
                     "heads": 4,
                     "dim_head": 32
                 }
@@ -38,15 +37,15 @@ class TestMidBlock:
     @pytest.fixture
     def t_emb(self, dummy_cfg):
         B = 2
-        return torch.randn(B, dummy_cfg.time_embed_dim)
+        return torch.randn(B, dummy_cfg.time_emb_dim)
     
     def test_midblock_with_attention(self, dummy_cfg, input_tensor, t_emb):
         block = MidBlock(
             dim=dummy_cfg.dim,
-            time_embed_dim=dummy_cfg.time_embed_dim,
-            resblock=dummy_cfg.resblock,
-            midblock=dummy_cfg.midblock,
-            attention=dummy_cfg.attention
+            time_emb_dim=dummy_cfg.time_emb_dim,
+            resblock_cfg=dummy_cfg.resblock,
+            midblock_cfg=dummy_cfg.midblock,
+            attention_cfg=dummy_cfg.attention
         )
         out = block(input_tensor, t_emb)
         assert out.shape == input_tensor.shape
@@ -55,10 +54,10 @@ class TestMidBlock:
         dummy_cfg["midblock"]["use_attention"] = False
         block = MidBlock(
             dim=dummy_cfg.dim,
-            time_embed_dim=dummy_cfg.time_embed_dim,
-            midblock=dummy_cfg.midblock,
-            resblock=dummy_cfg.resblock,
-            attention=dummy_cfg.attention
+            time_emb_dim=dummy_cfg.time_emb_dim,
+            midblock_cfg=dummy_cfg.midblock,
+            resblock_cfg=dummy_cfg.resblock,
+            attention_cfg=dummy_cfg.attention
         )
 
         out = block(input_tensor, t_emb)

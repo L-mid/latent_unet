@@ -18,7 +18,6 @@ def make_attention_cfg(kind: str = "vanilla", overrides=None):
     base_cfg = {
         "kind": kind,
         "params": {
-            "dim": 64,
             "num_heads": 4,
             "norm_groups": 8,
             "dim_head": None,
@@ -40,16 +39,17 @@ class TestVanillaAttention:
     def setup_method(self):
         self.cfg = make_attention_cfg("vanilla")
         self.x = torch.randn(2, 64, 32, 32, requires_grad=True)
+        self.dim = 64
 
     @controlled_test(CATEGORY, MODULE)
     def test_vanilla_attn_output_shape(self, test_config):
-        block = get_attention(self.cfg)
+        block = get_attention(self.dim, self.cfg)
         out = block(self.x)
         assert out.shape == self.x.shape
 
     @controlled_test(CATEGORY, MODULE)
     def test_vanilla_attn_backprop(self, test_config):
-        block = get_attention(self.cfg) 
+        block = get_attention(self.dim, self.cfg)
         out = block(self.x)
         out.mean().backward()
         assert self.x.grad is not None
@@ -64,16 +64,17 @@ class TestWindowAttention:
             }
         })
         self.x = torch.randn(2, 64, 32, 32, requires_grad=True)
+        self.dim = 64
 
     @controlled_test(CATEGORY, MODULE)
     def test_window_attn_output_shape(self, test_config):
-        block = get_attention(self.base_window_cfg)
+        block = get_attention(self.dim, self.base_window_cfg)
         out = block(self.x)
         assert out.shape == self.x.shape
 
     @controlled_test(CATEGORY, MODULE)
     def test_window_attn_backprop(self, test_config):
-        block = get_attention(self.base_window_cfg)
+        block = get_attention(self.dim, self.base_window_cfg)
         out = block(self.x)
         out.mean().backward()
         assert self.x.grad is not None
@@ -96,6 +97,7 @@ class TestFlashAttention:
             }
         })
         self.x = torch.randn(2, 64, 32, 32, requires_grad=True)
+        self.dim = 64 
 
     @pytest.mark.parametrize("backend", ["auto", "fallback_only"])
     @controlled_test(CATEGORY, MODULE)
@@ -105,7 +107,7 @@ class TestFlashAttention:
                 "backend": backend
             }
         })
-        block = get_attention(cfg)
+        block = get_attention(self.dim, cfg)
         out = block(self.x)
         assert out.shape == self.x.shape
 
@@ -118,7 +120,7 @@ class TestFlashAttention:
                 "backend": backend
             }
         })
-        block = get_attention(cfg).cuda()
+        block = get_attention(self.dim, cfg).cuda()
         out = block(self.x.cuda())
         assert out.shape == self.x.shape
 
@@ -131,7 +133,7 @@ class TestFlashAttention:
                 "backend": "auto"
             }
         })
-        block = get_attention(cfg).cuda()
+        block = get_attention(self.dim, cfg).cuda()
 
         x = self.x.cuda().detach().requires_grad_()
 
@@ -149,7 +151,7 @@ class TestFlashAttention:
                 }
             })
             with pytest.raises(RuntimeError, match="FlashAttention requires CUDA"):
-                FlashAttention(**cfg.params)(self.x)
+                FlashAttention(self.dim, **cfg.params)(self.x)
 
 
 # ---------------------------- #
@@ -172,14 +174,15 @@ class TestAttentionSystemAPI:
             assert model(dummy_input).shape == dummy_input.shape
 
     @controlled_test(CATEGORY, MODULE)
-    def test_attn_cfg_invalid_varient_raises(self, test_config):
+    def test_attn_cfg_invalid_varient_raises(self, test_config): #
+        dim = 100
         with pytest.raises(ValueError, match="Unknown attention type"):
             bad_cfg = OmegaConf.create({
                 "kind": "invalid",
                 "num_heads": "78",
                 "dim": 64,
             })
-            get_attention(bad_cfg)
+            get_attention(dim, bad_cfg)
 
 
 
