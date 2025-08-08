@@ -29,7 +29,7 @@ class UNet(nn.Module):
         temb = self.time_embedding(t)
 
         # Initial projection
-        x = self.init_conv(x).to(x.device) # fixed here
+        x = self.init_conv(x)
 
         # Down path with skip connections
         skips = []
