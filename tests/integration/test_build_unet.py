@@ -23,11 +23,12 @@ def model_and_config(unet_config):
 # ---------------------------------------------------------
 # Basic Model-Level Integration
 # ---------------------------------------------------------
-class TestUNetIntegration:
+class TestUNetIntegration: #testing
     def test_forward_pass_runs(self, model_and_config):
         model, cfg = model_and_config
         x = torch.randn(2, cfg.model.in_channels, 32, 32)
         t = torch.randint(0, 1000, (2,))
+        model.to(x.device)
         out = model(x, t)
 
         assert out.shape == x.shape
@@ -38,6 +39,7 @@ class TestUNetIntegration:
         model, cfg = model_and_config
         x = torch.randn(2, cfg.model.in_channels, 32, 32, requires_grad=True)
         t = torch.randint(0, 1000, (2,))
+        model.to(x.device)
         out = model(x, t)
         loss = out.mean()
         loss.backward()
@@ -105,7 +107,6 @@ class TestSkipShapeFlow:
             assert up.skip_channels == skip_shape[1], f"Expected skip channels {up.skip_channels}, got {skip_shape[1]}"
 
         
-  
 
     def test_channel_config_summary(self, model_and_config):
         model, _ = model_and_config
@@ -173,10 +174,9 @@ class TestAttentionVariantIntegration:
         assert not torch.allclose(out_with_attn, out_no_attn), f"{attn_type} attention had no effect on output!"
 
 
-    def test_model_runs_on_cuda(self, model_and_config):
+    def test_model_runs_on_cuda(self, model_and_config): # passes
         if not torch.cuda.is_available():
             pytest.skip("CUDA not available")
-
 
         model, cfg = model_and_config
         model = model.cuda()
@@ -190,7 +190,7 @@ class TestAttentionVariantIntegration:
             return bad
 
         left = _cpu_params(model)
-        print(f"Params left on CPU: {left}")
+        print(f"Params left on CPU: {left}") 
 
         x = torch.randn(1, cfg.model.in_channels, 32, 32).cuda()
         t = torch.randint(0, 1000, (1,)).cuda()
