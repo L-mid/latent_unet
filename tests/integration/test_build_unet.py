@@ -180,7 +180,7 @@ class TestAttentionVariantIntegration:
 
         model, cfg = model_and_config
         model = model.cuda()
-        
+
         def _cpu_params(model):
             bad = []
             for name, module in model.named_modules():
@@ -196,7 +196,7 @@ class TestAttentionVariantIntegration:
         t = torch.randint(0, 1000, (1,)).cuda()
 
         print("x device:", x.device)
-        print("model device:", next(self.parameters()).device)
+        #print("model device:", next(self.parameters()).device)
         print("init_conv device:", self.init_conv.weight.device)
 
         out = model(x, t)
