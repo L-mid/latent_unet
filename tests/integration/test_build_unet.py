@@ -70,6 +70,7 @@ class TestUNetIntegration: #testing
         for i, block in enumerate(model.ups):
             block.register_forward_hook(lambda m, i, o: print(f"[Up {i}] {m.__class__.__name__}: {o.shape if not isinstance(o, tuple) else tuple(x.shape for x in o)}"))
 
+        model.to(x.device)
         _ = model(x, t)
 
 # ----------------------------------------------------------------------
@@ -91,7 +92,8 @@ class TestSkipShapeFlow:
 
         for mod in model.downs:
             mod.register_forward_hook(record_skip_shapes)
-
+            
+        model.to(x.device)
         model(x, t)
 
         print("\n--- Recorded Skip Shapes ---")
