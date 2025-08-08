@@ -17,9 +17,9 @@ class UNet(nn.Module):
         self.in_channels = in_channels
         self.base_channels = base_channels
         self.time_embedding = time_embedding
-        self.downs = downs
+        self.downs = nn.ModuleList(downs) # fix for normalization
         self.mid = mid
-        self.ups = ups
+        self.ups = nn.ModuleList(ups)
         self.final_head = final_head
 
         self.init_conv = nn.Conv2d(in_channels, base_channels, kernel_size=3, padding=1)
@@ -29,7 +29,7 @@ class UNet(nn.Module):
         temb = self.time_embedding(t)
 
         # Initial projection
-        x = self.init_conv(x)
+        x = self.init_conv(x).to(x.device) # fixed here
 
         # Down path with skip connections
         skips = []

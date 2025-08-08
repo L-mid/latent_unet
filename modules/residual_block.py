@@ -42,7 +42,7 @@ class BaseResBlock(nn.Module):
         self.res_conv = nn.Conv2d(in_ch, out_ch, 1) if in_ch != out_ch else nn.Identity()
 
 
-    def forward(self, x, t_emb):
+    def forward(self, x, t_emb): 
         h = self.conv1(self.act1(self.norm1(x)))
         t_emb = t_emb.to(x.device)
         h += self.time_proj(t_emb).unsqueeze(-1).unsqueeze(-1)

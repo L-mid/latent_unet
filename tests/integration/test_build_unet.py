@@ -176,6 +176,19 @@ class TestAttentionVariantIntegration:
     def test_model_runs_on_cuda(self, model_and_config):
         if not torch.cuda.is_available():
             pytest.skip("CUDA not available")
+
+        def _cpu_params(model):
+            bad = []
+            for name, module in model.named_modules():
+                for pname, p in module.named_parameters(recurse=False):
+                    if p.device.type != 'cuda':
+                        bad.append(f"{name}.{pname}")
+            return bad
+
+        model = model.cuda()
+        left = _cpu_params(model)
+        assert not left, f"Params left on CPU: {left}"
+
         model, cfg = model_and_config
         model = model.cuda()
         x = torch.randn(1, cfg.model.in_channels, 32, 32).cuda()
