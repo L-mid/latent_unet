@@ -28,6 +28,10 @@ class UNet(nn.Module):
         # Compute time embedding
         temb = self.time_embedding(t)
 
+        print("x device:", x.device)
+        print("model device:", next(self.parameters()).device)
+        print("init_conv device:", self.init_conv.weight.device)
+
         # Initial projection
         x = self.init_conv(x)
 

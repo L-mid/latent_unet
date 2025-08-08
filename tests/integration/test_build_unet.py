@@ -195,10 +195,6 @@ class TestAttentionVariantIntegration:
         x = torch.randn(1, cfg.model.in_channels, 32, 32).cuda()
         t = torch.randint(0, 1000, (1,)).cuda()
 
-        print("x device:", x.device)
-        #print("model device:", next(self.parameters()).device)
-        print("init_conv device:", self.init_conv.weight.device)
-
         out = model(x, t)
         assert out.is_cuda
 
