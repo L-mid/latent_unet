@@ -14,9 +14,10 @@ from model.unet import UNet
 # ---------------------------------------------------------
 @pytest.fixture(scope="module")
 def model_and_config(unet_config):
-    model = build_unet_from_config(unet_config) #
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = build_unet_from_config(unet_config).to(device) #
     model.eval()
-    return model, unet_config
+    return model, unet_config # cuda issue with devices in resblock and here
 
 
 # ---------------------------------------------------------

@@ -43,8 +43,8 @@ class BaseResBlock(nn.Module):
 
 
     def forward(self, x, t_emb):
-        t_emb = t_emb.to(x.device)
         h = self.conv1(self.act1(self.norm1(x)))
+        t_emb = t_emb.to(x.device)
         h += self.time_proj(t_emb).unsqueeze(-1).unsqueeze(-1)
         h = self.conv2(self.act2(self.norm2(h)))
 
