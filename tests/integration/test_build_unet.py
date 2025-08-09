@@ -23,7 +23,7 @@ def model_and_config(unet_config):
 # ---------------------------------------------------------
 # Basic Model-Level Integration
 # ---------------------------------------------------------
-class TestUNetIntegration: #testing
+class TestUNetIntegration: 
     def test_forward_pass_runs(self, model_and_config):
         model, cfg = model_and_config
         x = torch.randn(2, cfg.model.in_channels, 32, 32)
@@ -92,7 +92,7 @@ class TestSkipShapeFlow:
 
         for mod in model.downs:
             mod.register_forward_hook(record_skip_shapes)
-            
+
         model.to(x.device)
         model(x, t)
 

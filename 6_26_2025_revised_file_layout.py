@@ -31,8 +31,8 @@ latent_unet_v1/
 │       ├── window_attention.py 🔹
 │       └── flash_attention.py 🔹
 
-├── diffusion/
-│   ├── ddpm.py
+├── diffusion/ 🔹
+│   ├── ddpm.py 
 │   ├── ddim.py
 │   ├── edm.py
 │   ├── sampler_registry.py
@@ -92,7 +92,7 @@ latent_unet_v1/
 │   │
 │   ├── integration/
 │   │   ├── test_unet.py 🔹
-│   │   ├── test_forward_process.py
+│   │   ├── test_integrated_forward_process.py 
 │   │   ├── test_train_loop.py
 │   │   └── test_ddpm_ddim_edm.py
 │   │
@@ -112,8 +112,16 @@ latent_unet_v1/
 │   │   ├── config/
 |   |   |   ├── test_config_loading.py
 │   │   │   ├── test_config_itegration.py
-│   │   │   └── test_config_roundtrip.py  
-│   │   │ 
+│   │   │   └── test_config_roundtrip.py
+│   │   │
+│   │   ├── diffusion/
+│   │   │   ├── test_schedule.py
+│   │   │   ├── test_forward_process.py
+│   │   │   ├── test_ddpm.py
+│   │   │   ├── test_ddim.py
+│   │   │   ├── test_edm.py
+│   │   │   └── test_sampler_registry.py
+│   │   │
 │   │   ├── test_visualizer.py      
 │   │   ├── test_debug_hooks.py 
 │   │   └── test_failure_injection.py
