@@ -6138,7 +6138,7 @@ def test_sampler_forward_pass(dummy_inputs, model_and_config, sampler_type):
 
 
 def test_sampler_differentiability(dummy_inputs, model_and_config):
-    # Ensure DDPm can backpropagate noise prediction if needed (used in loss).
+    # Ensure DDPM can backpropagate noise prediction if needed (used in loss).
 
     x, t, device = dummy_inputs
     model, cfg = model_and_config

@@ -35,10 +35,10 @@ latent_unet_v1/
 │   ├── ddpm.py 
 │   ├── ddim.py
 │   ├── edm.py
-│   ├── sampler_registry.py
+│   ├── sampler_registry.py 🔹
 │   ├── sampler_utils.py
 │   ├── forward_process.py
-│   └── schedule.py
+│   └── schedule.py 🔹
 
 ├── trainer/
 │   ├── train_loop.py
@@ -115,7 +115,7 @@ latent_unet_v1/
 │   │   │   └── test_config_roundtrip.py
 │   │   │
 │   │   ├── diffusion/
-│   │   │   ├── test_schedule.py
+│   │   │   ├── test_schedule.py 🔹
 │   │   │   ├── test_forward_process.py
 │   │   │   ├── test_ddpm.py
 │   │   │   ├── test_ddim.py

@@ -24,13 +24,9 @@ class UNet(nn.Module):
 
         self.init_conv = nn.Conv2d(in_channels, base_channels, kernel_size=3, padding=1)
 
-    def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, t: torch.Tensor, cond=None) -> torch.Tensor:
         # Compute time embedding
         temb = self.time_embedding(t)
-
-        print("x device:", x.device)
-        print("model device:", next(self.parameters()).device)
-        print("init_conv device:", self.init_conv.weight.device)
 
         # Initial projection
         x = self.init_conv(x)
