@@ -40,7 +40,7 @@ def test_sampler_forward_pass(dummy_inputs, model_and_config, sampler_type):
     elif sampler_type == "ddim":
         sampler = ddim_sample(model=model, shape=(2, 3, 32, 32), num_steps=cfg.sampler.num_steps, device=device)
     elif sampler_type == "edm":
-        sampler = edm_sample(model=model, shape=(2, 3, 32, 32), cfg=cfg.sampler, device=device)
+        sampler = edm_sample(model=model, shape=(2, 3, 32, 32), cfg=cfg, device=device)
     else:
         raise ValueError("Unknown sampler type")
 
