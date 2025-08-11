@@ -11,7 +11,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 @pytest.mark.parametrize("schedule", ["linear", "cosine"])
 def test_beta_schedule_shapes(schedule):
-    fp = ForwardProcess(schedule=schedule, timesteps=1000)
+    fp = ForwardProcess(schedule=schedule, timesteps=1000, device=DEVICE)
 
     schedule = get_diffusion_schedule("linear", 1000)
     print(schedule)
