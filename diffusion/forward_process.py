@@ -8,7 +8,7 @@ class ForwardProcess:
         self.device = device
 
         # === 1. Cache the full noise schedule ===
-        sched = get_diffusion_schedule(schedule_type=schedule, timesteps=timesteps)
+        sched = get_diffusion_schedule(schedule_type=schedule, timesteps=timesteps, device=device)
         self.betas = sched.betas
         self.alphas = sched.alphas
         self.alphas_cumprod = sched.alphas_cumprod
@@ -20,7 +20,7 @@ class ForwardProcess:
         out = tensor.gather(0, t).float()
         return out.reshape(-1, 1, 1, 1).expand(shape)
     
-    def q_sample(self, x_start, t, noise=None, return_noise=False): # cuda issue
+    def q_sample(self, x_start, t, noise=None, return_noise=False): 
         # Sample from q(x_t | x_0)
         if noise is None:
             noise = torch.randn_like(x_start).to(self.device)
@@ -28,7 +28,7 @@ class ForwardProcess:
         print(noise.device, "noise")
         print(t.device, "t")
         print(x_start.device, "x_start")
-        print(self.sqrt_alphas_cumprod.device, "sqrt_alpha_cump")
+        print(self.sqrt_alphas_cumprod.device, "sqrt_alpha_cump") # on cpu
 
         sqrt_alpha = self.extract(self.sqrt_alphas_cumprod, t, x_start.shape) 
         sqrt_one_minus = self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
