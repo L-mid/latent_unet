@@ -32,12 +32,13 @@ latent_unet_v1/
 │       └── flash_attention.py 🔹
 
 ├── diffusion/ 🔹
-│   ├── ddpm.py 
-│   ├── ddim.py
-│   ├── edm.py
+│   ├── ddpm.py 🔹
+│   ├── ddim.py 🔹
+│   ├── edm.py 🔹
 │   ├── sampler_registry.py 🔹
-│   ├── sampler_utils.py
-│   ├── forward_process.py
+│   ├── sampler_utils.py 🔹
+│   ├── forward_process.py 
+│   └── schedule.py 🔹
 │   └── schedule.py 🔹
 
 ├── trainer/
@@ -94,7 +95,7 @@ latent_unet_v1/
 │   │   ├── test_unet.py 🔹
 │   │   ├── test_integrated_forward_process.py 
 │   │   ├── test_train_loop.py
-│   │   └── test_ddpm_ddim_edm.py
+│   │   └── test_ddpm_ddim_edm.py🔹
 │   │
 │   ├── end_to_end/
 │   │   ├── test_cuda_health.py
@@ -110,17 +111,17 @@ latent_unet_v1/
 │   │   ├── data/
 │   │   │   └── test_data_pipeline.py 
 │   │   ├── config/
-|   |   |   ├── test_config_loading.py
+|   |   |   ├── test_config_loading.py🔹
 │   │   │   ├── test_config_itegration.py
-│   │   │   └── test_config_roundtrip.py
+│   │   │   └── test_config_roundtrip.🔹
 │   │   │
 │   │   ├── diffusion/
 │   │   │   ├── test_schedule.py 🔹
-│   │   │   ├── test_forward_process.py
-│   │   │   ├── test_ddpm.py
-│   │   │   ├── test_ddim.py
-│   │   │   ├── test_edm.py
-│   │   │   └── test_sampler_registry.py
+│   │   │   ├── test_forward_process.py 🔹
+│   │   │   ├── test_ddpm.py 🔹
+│   │   │   ├── test_ddim.py 🔹
+│   │   │   ├── test_edm.py 🔹
+│   │   │   └── test_sampler_registry.py 🔹
 │   │   │
 │   │   ├── test_visualizer.py      
 │   │   ├── test_debug_hooks.py 

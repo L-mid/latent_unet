@@ -53,9 +53,13 @@ class DiffusionSchedule:
     sqrt_alphas_cumprod: torch.Tensor
     sqrt_one_minus_alphas_cumprod: torch.Tensor
     log_one_minus_alphas_cumprod: torch.Tensor
+    sqrt_recip_alphas: torch.Tensor
     sqrt_recip_alphas_cumprod: torch.Tensor
     sqrt_recipm1_alphas_cumprod: torch.Tensor
     posterior_variance: torch.Tensor
+    posterior_log_variance_clipped: torch.Tensor
+    posterior_mean_coef1: torch.Tensor
+    posterior_mean_coef2: torch.Tensor
 
     def to(self, device):
         for field in self.__dataclass_fields__:
@@ -68,23 +72,57 @@ def get_diffusion_schedule(
     timesteps: int,
     beta_start: float = 1e-4,
     beta_end: float = 0.02,
+    device: torch.device | str = "cpu",
+    dtype: torch.dtype = torch.float32,
 ) -> DiffusionSchedule:
+    # 1) betas
     betas = make_beta_schedule(schedule_type, timesteps, beta_start, beta_end)
+    assert betas.ndim == 1 and betas.shape[0] == timesteps
+
+    # 2) alphas (+ culmulative)
     alphas = 1.0 - betas
     alphas_cumprod = torch.cumprod(alphas, dim=0)
-    alphas_cumprod_prev = torch.cat([torch.tensor([1.0], dtype=alphas.dtype), alphas_cumprod[:-1]])
+    # careful to keep device/dtype consitent
+    one = torch.ones(1, device=device, dtype=dtype)
+    alphas_cumprod_prev = torch.cat([one, alphas_cumprod[:-1]], dim=0)
+
+    # 3) handy precomputes (correct formulas)
+    sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
+    sqrt_one_minus_alphas_cumprod = torch.sqrt(torch.clamp(1.0 - alphas_cumprod, min=1e-20))
+    log_one_minus_alphas_cumprod = torch.log(torch.clamp(1.0 - alphas_cumprod, min=1e-20))
+    sqrt_recip_alphas = torch.sqrt(1.0 / alphas)
+    sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod)
+    sqrt_recipm1_alphas_cumprod = torch.sqrt(torch.clamp(1.0 / alphas_cumprod - 1.0, min=0.0))
+
+    # 4) posterior terms (DDPM eq. 7 & impl tricks)
+    posterior_variance = betas * (1.0 - alphas_cumprod_prev) / torch.clamp(1.0 - alphas_cumprod, min=1e-20)
+    # log variance clipped: use t=1 value for t=0 to avoid -inf
+    posterior_log_variance_clipped = torch.log(
+        torch.cat([posterior_variance[1:2], posterior_variance[1:]], dim=0)
+    )
+
+    # 5) mean coefficients (for q(x_{t-1} | x_t, x_0))
+    posterior_mean_coef1 = torch.sqrt(alphas_cumprod_prev) * betas / torch.clamp(1.0 - alphas_cumprod, min=1e-20)
+    posterior_mean_coef2 = torch.sqrt(alphas) * (1.0 - alphas_cumprod_prev) / torch.clamp(1.0 - alphas_cumprod, min=1e-20)
+
 
     return DiffusionSchedule(
     betas=betas,
     alphas=alphas,
-    alphas_cumprod=alphas_cumprod_prev,
-    sqrt_alphas_cumprod=torch.sqrt(1.0 - alphas_cumprod),
-    sqrt_one_minus_alphas_cumprod=torch.sqrt(1.0 - alphas_cumprod),
-    log_one_minus_alphas_cumprod=torch.sqrt(1.0 / alphas_cumprod), # ???
-    sqrt_recip_alphas_cumprod=torch.sqrt(1.0 / alphas_cumprod), # ???
-    sqrt_recipm1_alphas_cumprod=torch.sqrt(1.0 / alphas_cumprod - 1),
-    posterior_variance=betas * (1.0 - alphas_cumprod_prev) / (1.0 - alphas_cumprod),
-    )
+    alphas_cumprod=alphas_cumprod,
+    alphas_cumprod_prev=alphas_cumprod_prev,
+    sqrt_alphas_cumprod=sqrt_alphas_cumprod,
+    sqrt_one_minus_alphas_cumprod=sqrt_one_minus_alphas_cumprod,
+    log_one_minus_alphas_cumprod=log_one_minus_alphas_cumprod,
+    sqrt_recip_alphas=sqrt_recip_alphas, #
+    sqrt_recip_alphas_cumprod=sqrt_recip_alphas_cumprod,
+    sqrt_recipm1_alphas_cumprod=sqrt_recipm1_alphas_cumprod,
+    posterior_variance=posterior_variance,
+    posterior_log_variance_clipped=posterior_log_variance_clipped,
+    posterior_mean_coef1=posterior_mean_coef1,
+    posterior_mean_coef2=posterior_mean_coef2,
+)
+
 
 
 
