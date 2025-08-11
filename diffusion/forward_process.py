@@ -1,29 +1,34 @@
 
 import torch
+import torch.nn as nn
 from diffusion.schedule import get_diffusion_schedule
 
-class ForwardProcess:
-    def __init__(self, schedule="cosine", timesteps=1000, device="cpu"):
+class ForwardProcess(nn.Module):
+    def __init__(self, schedule="cosine", timesteps=1000, device="cpu", dtype=torch.float32):
+        super().__init__()
+        sched = get_diffusion_schedule(schedule_type=schedule, timesteps=timesteps)
+        
         self.timesteps = timesteps
-        self.device = device
 
-        # === 1. Cache the full noise schedule ===
-        sched = get_diffusion_schedule(schedule_type=schedule, timesteps=timesteps, device=device)
-        self.betas = sched.betas
-        self.alphas = sched.alphas
-        self.alphas_cumprod = sched.alphas_cumprod
-        self.sqrt_alphas_cumprod = sched.sqrt_alphas_cumprod
-        self.sqrt_one_minus_alphas_cumprod = sched.sqrt_one_minus_alphas_cumprod
+        # register as buffers
+        self.register_buffer("betas", sched.betas)
+        self.register_buffer("alphas", sched.alphas)
+        self.register_buffer("alphas_cumprod", sched.alphas_cumprod)
+        self.register_buffer("sqrt_alphas_cumprod", sched.sqrt_alphas_cumprod)
+        self.register_buffer("sqrt_one_minus_alphas_cumprod", sched.sqrt_one_minus_alphas_cumprod)
+
 
     def extract(self, tensor, t, shape):
         # Grab per-timestep values and broadcast to input shape
+        t = t.to(tensor.device)
         out = tensor.gather(0, t).float()
         return out.reshape(-1, 1, 1, 1).expand(shape)
     
+    @torch.no_grad()
     def q_sample(self, x_start, t, noise=None, return_noise=False): 
         # Sample from q(x_t | x_0)
         if noise is None:
-            noise = torch.randn_like(x_start).to(self.device)
+            noise = torch.randn_like(x_start)
 
         print(noise.device, "noise")
         print(t.device, "t")
@@ -34,6 +39,7 @@ class ForwardProcess:
         sqrt_one_minus = self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
         x_t = sqrt_alpha * x_start + sqrt_one_minus * noise
         return (x_t, noise) if return_noise else x_t
+    
     
     def get_snr_weights(self, t):
         # Compute SNR = alpha / (1 - alpha) for loss weighting.
