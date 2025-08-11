@@ -21,7 +21,7 @@ def test_beta_schedule_shapes(schedule):
     assert torch.all(fp.alphas_cumprod > 0) and torch.all(fp.alphas_cumprod <= 1)
 
 def test_q_sample_shape_consistency():
-    fp = ForwardProcess(schedule="linear", timesteps=1000, device=DEVICE)
+    fp = ForwardProcess(schedule="linear", timesteps=1000, device=DEVICE).to(DEVICE)
     x_start = torch.randn(BATCH, CHANNELS, HEIGHT, WIDTH).to(DEVICE)
     t = torch.randint(0, 1000, (BATCH,), device=DEVICE)
     x_noised, noise = fp.q_sample(x_start, t, return_noise=True)
