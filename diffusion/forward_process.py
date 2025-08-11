@@ -24,7 +24,13 @@ class ForwardProcess:
         # Sample from q(x_t | x_0)
         if noise is None:
             noise = torch.randn_like(x_start).to(self.device)
-        sqrt_alpha = self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) 
+
+        print(noise.device, "noise")
+        print(t.device, "t")
+        print(x_start.device, "x_start")
+        print(self.sqrt_alphas_cumprod.device, "sqrt_alpha_cump")
+
+        sqrt_alpha = self.extract(self.sqrt_alphas_cumprod, t, x_start.shape) 
         sqrt_one_minus = self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
         x_t = sqrt_alpha * x_start + sqrt_one_minus * noise
         return (x_t, noise) if return_noise else x_t
