@@ -37,15 +37,16 @@ latent_unet_v1/
 │   ├── edm.py 🔹
 │   ├── sampler_registry.py 🔹
 │   ├── sampler_utils.py 🔹
-│   ├── forward_process.py 
+│   ├── forward_process.py 🔹
 │   └── schedule.py 🔹
 │   └── schedule.py 🔹
 
 ├── trainer/
-│   ├── train_loop.py
-│   ├── cluster_utils.py
-│   ├── logger.py
-│   └── losses.py
+│   ├── train_loop.py XXX
+│   ├── cluster_utils.py 🔹
+│   ├── logger.py 🔹
+│   ├── optim_utils.py 🔹
+│   └── losses.py 🔹
 
 ├── data/
 │   ├── loader.py
@@ -93,8 +94,8 @@ latent_unet_v1/
 │   │
 │   ├── integration/
 │   │   ├── test_unet.py 🔹
-│   │   ├── test_integrated_forward_process.py 
-│   │   ├── test_train_loop.py
+│   │   ├── test_integrated_forward_process.py ?
+│   │   ├── test_train_loop.py 
 │   │   └── test_ddpm_ddim_edm.py🔹
 │   │
 │   ├── end_to_end/
@@ -113,7 +114,7 @@ latent_unet_v1/
 │   │   ├── config/
 |   |   |   ├── test_config_loading.py🔹
 │   │   │   ├── test_config_itegration.py
-│   │   │   └── test_config_roundtrip.🔹
+│   │   │   └── test_config_roundtrip.py🔹
 │   │   │
 │   │   ├── diffusion/
 │   │   │   ├── test_schedule.py 🔹
@@ -121,6 +122,7 @@ latent_unet_v1/
 │   │   │   ├── test_ddpm.py 🔹
 │   │   │   ├── test_ddim.py 🔹
 │   │   │   ├── test_edm.py 🔹
+│   │   │   ├── test_losses.py 🔹
 │   │   │   └── test_sampler_registry.py 🔹
 │   │   │
 │   │   ├── test_visualizer.py      

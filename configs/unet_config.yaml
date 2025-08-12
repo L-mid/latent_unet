@@ -36,7 +36,7 @@ attention:
   kind: "vanilla"   # "vanilla" | "linear" | "flash" | "none"
   per_block:
     down: [false, true, true, false]
-    up: [false, true, false]
+    up: [false, true, false]  # these not used but maybe later?
   params:
     num_heads: 8
     norm_groups: 8      
