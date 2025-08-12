@@ -70,11 +70,11 @@ def p2_loss(pred, target, weight=None):
 # Perceptual Losses
 # -----------------------------------------------
 
-@register_loss("lpips")
-def lipis_loss(pred, target, **kwargs):
-    assert LPIPS is not None, "LPIPS not installed!"
-    loss_fn = LPIPS(net='vgg').to(pred.device)
-    return loss_fn(pred, target).mean()
+if LPIPS is not None: 
+    @register_loss("lpips")
+    def lipis_loss(pred, target, **kwargs):
+        loss_fn = LPIPS(net='vgg').to(pred.device)
+        return loss_fn(pred, target).mean()
 
 @register_loss("vgg")
 def vgg_feature_loss(pred, target, **kwargs):

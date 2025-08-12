@@ -56,6 +56,7 @@ def test_mse_loss(dummy_inputs):
 def test_lpips_loss(dummy_inputs):
     if "lpips" not in LOSS_REGISTRY:
         pytest.skip("LPIPS not installed")
+
     pred, target = dummy_inputs
     loss = LOSS_REGISTRY["lpips"](pred, target)
     assert loss > 0
