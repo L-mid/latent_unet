@@ -46,8 +46,8 @@ def tmpdir(tmp_path):
 @pytest.fixture
 def viz():
     # Fresh import each time (handy while iterating)
-    sys.modules.pop("latent_unet_v1.utils.visualizer", None)
-    return importlib.import_module("latent_unet_v1.utils.visualizer")
+    sys.modules.pop("utils.visualizer", None)
+    return importlib.import_module("utils.visualizer")
 
 # --- Synthetic tensors ------------------------------------------------------------------------
 

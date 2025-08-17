@@ -2,11 +2,13 @@
 import sys
 import os
 import pytest
+import importlib
 
 # Ensure root project directory is in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+importlib.invalidate_caches()
 
 from model.config import load_config
 
