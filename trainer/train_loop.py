@@ -5,7 +5,7 @@ from torch.cuda.amp import GradScaler, autocast
 from utils.debug import debug_log, debug_section
 
 from utils.checkpointing import save_checkpoint, load_checkpoint
-from utils.visualizer import build_visualizer
+from utils.visualizer import visualize_everything
 from trainer.logger import build_logger
 from trainer.optim_utils import build_optimizer, build_scheduler, build_ema
 from diffusion.sampler_registry import build_diffusion

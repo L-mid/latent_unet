@@ -46,6 +46,7 @@ latent_unet_v1/
 │   ├── cluster_utils.py 🔹
 │   ├── logger.py 🔹
 │   ├── optim_utils.py 🔹
+│   ├── ema_utils.py 🔹
 │   └── losses.py 🔹
 
 ├── data/
@@ -54,25 +55,25 @@ latent_unet_v1/
 │   └── dataset_registry.py
 
 ├── utils/
-│   ├── debug.py
-│   ├── visualizer.py
+│   ├── debug.py 🔹
+│   ├── visualizer.py 🔹
 │   ├── memory_tools.py
 │   ├── failure_injection.py
 │   ├── tensor_inspect.py
-│   ├── vanilla_checkpointing.py
+│   ├── vanilla_checkpointing.py 🔹
 │   │
-│   ├── zarr_checkpointing/
-│   │    ├── zarr_core.py
-│   │    └── zarr_wrapper.py
+│   ├── zarr_checkpointing/ 🔹
+│   │    ├── zarr_core.py 🔹
+│   │    └── zarr_wrapper.py 🔹
 │   │
 │   └── tensorstore_checkpointing/
-│       ├── __init__.py
-│       ├── tensorstore_core.py
-│       ├── tensorstore_wrapper.py
-│       ├── schema_utils.py
-│       ├── chunk_tuner.py
-│       ├── registry.py
-│       └── remote_utils.py
+│       ├── __init__.py 🔹
+│       ├── tensorstore_core.py 🔹
+│       ├── tensorstore_wrapper.py 🔹
+│       ├── schema_utils.py 🔹
+│       ├── chunk_tuner.py 🔹
+│       ├── registry.py 🔹
+│       └── remote_utils.py 🔹
 
 ├── helpers/
 │   ├── mock_configs.py
@@ -125,7 +126,7 @@ latent_unet_v1/
 │   │   │   ├── test_losses.py 🔹
 │   │   │   └── test_sampler_registry.py 🔹
 │   │   │
-│   │   ├── test_visualizer.py      
+│   │   ├── test_visualizer.py 🔹
 │   │   ├── test_debug_hooks.py 
 │   │   └── test_failure_injection.py
 │   │

@@ -166,6 +166,7 @@ logging:
 
 
 # ---- Visualization ----
+visualization:
   enable: true
   output_dir: ./visuals
   save_every: 500   # Save every N steps
@@ -176,7 +177,7 @@ logging:
   plot_attention: true
   plot_latents: true
   plot_timesteps: true 
-  # etc etc etc...
+  # etc etc etc... #.use?
 
 
 # --- Debugging ---
