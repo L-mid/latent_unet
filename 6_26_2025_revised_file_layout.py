@@ -39,7 +39,6 @@ latent_unet_v1/
 │   ├── sampler_utils.py 🔹
 │   ├── forward_process.py 🔹
 │   └── schedule.py 🔹
-│   └── schedule.py 🔹
 
 ├── trainer/
 │   ├── train_loop.py XXX

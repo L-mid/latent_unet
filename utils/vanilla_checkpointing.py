@@ -4,6 +4,15 @@ import os, io, json, tempfile, time, hashlib
 import yaml
 from pathlib import Path
 
+# === NOTES ===
+"""
+atomic checkpointing and non are very different and i don't know why. 
+I will never use non atomic checkpointing so it should be merged and removed.
+
+Test: the test does not test atomic checkpointing well, only non. 
+"""
+
+
 def save_checkpoint(model, optimizer, ema=None, epoch=0, step=0, loss=None,
                     path="checkpoint.pt", config=None, scaler=None):
     checkpoint = {

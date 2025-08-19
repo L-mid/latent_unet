@@ -6682,21 +6682,21 @@ class ToyModel(torch.nn.Module):
     def test_full_zarr_checkpoint_roundtrip():
         logging.basicConfig(level=logging.INFO)
 
-    # Setup dummy model, optimizer, scheduler
-    model = ToyModel()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+        # Setup dummy model, optimizer, scheduler
+        model = ToyModel()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
-    tmp_dir = tempfile.mkdtemp()
-    checkpoint_path = os.path.join(tmp_dir, "zarr_test_store")
+        tmp_dir = tempfile.mkdtemp()
+        checkpoint_path = os.path.join(tmp_dir, "zarr_test_store")
 
-    # Build schema from model
-    model_shapes = {k: tuple(v.shape) for k, v in model.state_dict().items()}
-    schema = {"model": model_shapes}
+        # Build schema from model
+        model_shapes = {k: tuple(v.shape) for k, v in model.state_dict().items()}
+        schema = {"model": model_shapes}
 
-    # Build chunk config (test chunk_tuner integration)
-    chunk_config = chunk_tuner.get_chunk_config(
-        model_shapes, strategy="auto", fixed_size=32768
+        # Build chunk config (test chunk_tuner integration)
+        chunk_config = chunk_tuner.get_chunk_config(
+            model_shapes, strategy="auto", fixed_size=32768
     ) 
 
     # Generate metadata
