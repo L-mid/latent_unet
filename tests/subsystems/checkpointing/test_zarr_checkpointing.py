@@ -7,10 +7,16 @@ import numpy as np
 import pytest
 from pathlib import Path
 
+try: 
+    import zarr 
+except ImportError:
+    zarr = None
+
 from utils.zarr_checkpointing import (
     zarr_wrapper,
     zarr_core
 )
+
 
 # Dummy toy model for full system test
 class ToyModel(torch.nn.Module):
@@ -19,7 +25,7 @@ class ToyModel(torch.nn.Module):
         self.linear = torch.nn.Linear(10, 5)
         self.bn = torch.nn.BatchNorm1d(5)
 
-
+@pytest.mark.skipif(zarr is None, reason="zarr not installed")
 def test_full_zarr_checkpoint_roundtrip():
     logging.basicConfig(level=logging.INFO)
 
