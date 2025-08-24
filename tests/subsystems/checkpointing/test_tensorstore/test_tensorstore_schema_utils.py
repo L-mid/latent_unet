@@ -9,14 +9,8 @@ import tensorstore as ts
 import re
 
 
-"""
-try:
-    import zarr
-except ImportError:
-    zarr = None
-
-if zarr == None: pytest.skip(reason="Tensorstore uses zarr backend")
-"""
+zarr = pytest.importorskip("zarr", reason="zarr not installed")
+pytest_asyncio = pytest.importorskip("pytest_asyncio", reason="pytest_asyncio not installed")
 
 from utils.tensorstore_checkpointing import (
     tensorstore_core,
