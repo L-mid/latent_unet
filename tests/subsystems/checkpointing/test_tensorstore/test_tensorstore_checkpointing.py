@@ -6,13 +6,6 @@ import torch
 import asyncio
 import importlib
 
-"""
-try:
-    import zarr
-except ImportError:
-    zarr = None
-"""
-
 # -----------------------------------------------------------------------------------
 # Dummy test model
 # -----------------------------------------------------------------------------------
@@ -28,9 +21,9 @@ class DummyModel(torch.nn.Module):
 # Full end-to-end checkpoint test
 # ------------------------------------------------------------------------------------
 
-"""
-@pytest.mark.skipif(zarr == None, reason="zarr not installed")
-"""
+
+zarr = pytest.importorskip("zarr", reason="zarr not installed")
+pytest_asyncio = pytest.importorskip("pytest_asyncio", reason="pytest-asyncio not installed")
 def test_tensorstore_checkpoint_roundtrip():
     # Setup dummy model / optimizer / scheduler
 
