@@ -1,0 +1,58 @@
+
+# --- Python Cache ---
+__pycache__/
+*.py[cod]
+*.so
+
+# --- Virtual Environments ---
+.venv/
+env/
+venv/
+*.egg-info/
+
+# --- Logs, Outputs, Checkpoints --- (more here)
+logs/
+checkpoints/
+outputs/
+samples/
+*.log
+*.out
+*.err
+
+# --- Model Artifacts ---
+*.pt 
+*.pth
+*.ckpt 
+*.onnx
+
+# --- Training Tools ---
+wandb/
+tensorboard/
+lightning_logs/
+mlruns/
+
+# -- Dataset Artifacts ---
+*.zip
+*.tar 
+*.tar.gz
+*.npz
+*.npy
+*.h5
+
+# --- IDEs & Editor Configs ---
+.vscode/
+.itea/
+*.swp
+
+# --- OS & Misc ---
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+
+# --- Configs and Overrides (optional) ---
+config.yaml
+*.local.yaml
+
+
+

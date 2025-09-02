@@ -8,6 +8,12 @@ from typing import Dict, Any, Optional
 
 from torch.utils.tensorboard import SummaryWriter
 
+# === NOTES:
+"""
+DEPENDENT on tensorboard installation (if colab doesn't have keep in mind)
+"""
+
+
 try: 
     import wandb
     WANDB_AVAILIBLE = True
@@ -17,25 +23,25 @@ except ImportError:
 class ExperimentLogger:
     def __init__(self, cfg, output_dir="logs", use_wandb=True, debug_mode=False):
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.log_dir = Path(output_dir) / f"{cfg.project_name}_{timestamp}"
-        self.log_dir.mkdir(parent=True, exist_ok=True)
+        self.log_dir = Path(output_dir) / f"{cfg.logging.project_name}_{timestamp}"
+        self.log_dir.mkdir(parents=True, exist_ok=True)
 
         self.debug_mode = debug_mode 
         self.writer = SummaryWriter(log_dir=str(self.log_dir / "tensorboard"))
 
-        self.use_wandb = use_wandb and WANDB_AVAILIBLE and not cfg.debug.disable_wandb
+        self.use_wandb = use_wandb and WANDB_AVAILIBLE and cfg.logging.use_wandb
         self.wandb_run = None
 
         if self.use_wandb:
             self.wandb_run = wandb.init(
-                project=cfg.project_name,
-                name=cfg.run_name,
+                project=cfg.logging.project_name,
+                name=cfg.logging.run_name,
                 config=cfg,
                 dir=str(self.log_dir / "wandb"),
                 resume="allow"
             )
 
-        self.setup_python_logger()
+        self._setup_python_logger()
 
     def _setup_python_logger(self):
         self.logger = logging.getLogger("trainer_logger")

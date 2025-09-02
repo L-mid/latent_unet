@@ -6,6 +6,10 @@ import torchvision.utils as vutils
 from einops import rearrange
 import numpy as np
 
+# === NOTES:
+"""
+Extremely messy, different output dirs everywhere, not tested if all can be visualized together either.
+"""
 
 
 VISUALIZER_REGISTRY = {}
@@ -152,10 +156,10 @@ def visualize_everything(
     cfg=None,
     betas=None,
 ):
-    if not cfg or not cfg.enabled:
+    if not cfg or not cfg.visualization.enabled:
         return
 
-    save_path = cfg.save_path
+    save_path = cfg.visualization.output_dir
     os.makedirs(save_path, exist_ok=True)
 
     base_kwargs = {
@@ -164,11 +168,11 @@ def visualize_everything(
         "params": named_parameters,
         "step": step,
         "betas": betas,
-        "save_path": cfg.save_path,
-        "n_channels": cfg.latent_channels
+        "save_path": cfg.visualization.output_dir,
+        "n_channels": 4                             # was cfg.latent_channels before? 
     }
 
-    for name in cfg.use:
+    for name in cfg.visualization.use:
         fn = VISUALIZER_REGISTRY.get(name)
         if not fn:
             continue

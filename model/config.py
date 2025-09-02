@@ -2,6 +2,12 @@
 from omegaconf import OmegaConf, DictConfig
 import os
 
+# === NOTES
+"""
+Typed dataclassing is a good goal for the next large repo build. 
+"""
+
+
 # Simple YAML reader via OmegaConf (no typed dataclassing)
 
 

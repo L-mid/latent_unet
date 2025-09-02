@@ -1,4 +1,11 @@
 
+
+# === NOTES:
+# Configs are a bit of a nonsensical mess
+# 7-level nesting is too much: max = 4
+# consdier presets 
+
+
 # ----- Training Hyperparameters -----
 
 training:
@@ -6,7 +13,7 @@ training:
   num_epochs: 300
   grad_clip: 1.0
   grad_accum: 1
-  amp: true
+  amp: true   
   gradient_checkpointing: false
   num_workers: 8
   vis_interval: 10    # every N epochs
@@ -94,11 +101,11 @@ optim:
 
 
 # ---- Losses ----
-losses:
+losses:     # very oddly nested
   - type: "mse"
     weight: 1.0
     schedule:
-      type: "linear"
+      type: "linear"  # or cosine, others
       start_epoch: null
       end_epoch: null    
 
@@ -161,23 +168,24 @@ data:
 
 logging:
   use_wandb: true
-  project: "latent-unet-v1"
+  project_name: "latent-unet-v1"
   run_name: "baseline_128ch_flash"
 
 
 # ---- Visualization ----
 visualization:
-  enable: true
+  enabled: true
   output_dir: ./visuals
   save_every: 500   # Save every N steps
   max_images: 16     # N of images per vis
   steps_to_plot: [0, 50, 100, 250, 500, 750, 999]
 
+  use:
   # Vis types:
-  plot_attention: true
-  plot_latents: true
-  plot_timesteps: true 
-  # etc etc etc... #.use?
+    latents: true
+    param_norms: true
+    grad_flow: true  # true does nothing right now
+    # etc etc etc... #.use?
 
 
 # --- Debugging ---

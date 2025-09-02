@@ -6,6 +6,12 @@ from typing import Dict, Optional
 import matplotlib.pyplot as plt
 
 
+# === NOTES
+"""
+Some losses configs are key based '[]', not dot based '.'
+"""
+
+
 # Optional perceptual loss libraries
 try:
     from lpips import LPIPS
@@ -169,7 +175,7 @@ def constant_schedule(t, alpha_t=None):
 def inverse_alpha_squared(t, alpha_t):
     return 1.0 / (alpha_t ** 2 + 1e-7)
 
-@register_schedule("linear_decay")
+@register_schedule("linear")
 def linear_decay(t, T=1000):
     return 1.0 - t.float() / T
 
@@ -183,8 +189,8 @@ def cosine_decay(t, T=1000):
 # ------------------------------------
 
 def get_loss_fn(cfg):
-    loss_type = cfg.training.loss_type.lower()
-    schedule_type = cfg.training.loss_schedule.lower()
+    loss_type = cfg.losses.type.lower()
+    schedule_type = cfg.losses.schedule.type.lower()
 
     loss_fn = LOSS_REGISTRY[loss_type]
     weight_fn = SCHEDULE_REGISTRY[schedule_type] #???

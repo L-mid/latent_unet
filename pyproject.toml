@@ -1,0 +1,53 @@
+
+[project]
+name = "latent-unet"
+version = "0.1.0"
+description = "Modular diffusion model framework with UNet"
+authors = [{ name = "L"}]
+readme = "README.md"
+requires-python = ">=3.9"
+license = { test = "MIT"}
+
+dependencies = [
+    "torch>=2.0",
+    "omegaconf",
+    "einops",
+    "wandb",
+    "tqdm",
+    "matplotlib",
+    "numpy",
+    "scikit-learn",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "xformers",
+    "tensorstore",
+    "jupyter",
+]
+
+[build-system]
+requires = ["setuptools">61.0]
+build-backend = "setuptools.build_meta"
+
+[tool.block]
+line-length = 88
+
+[tool.mypy]
+strict = true
+ingore_missing_imports = true
+
+
+# Install in editable mode: pip install -e ".[dev]"
+
+# Start using the repo like a real Python module:
+# from latent_unet.model.unet import UNet.
+
+
+

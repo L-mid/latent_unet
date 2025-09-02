@@ -8,6 +8,15 @@ import numpy as np
 import torch
 import pytest
 
+# === NOTES:
+"""
+Visualizer needs fixing up.
+
+
+"""
+
+
+
 # Force non-interactive backend for headless runs
 import matplotlib
 matplotlib.use("Agg")
@@ -22,14 +31,14 @@ def _mk_cfg(tmp_path, max_images=4, use=None):
     #    cfg.visualizer.{enabled, save_dir, max_images, use, latent_channels}
 
     cfg = types.SimpleNamespace()
-    vis = types.SimpleNamespace()
+    vis = types.SimpleNamespace()   
     vis.enabled = True
-    vis.save_path = str(tmp_path)
+    vis.output_dir = str(tmp_path)
     vis.max_images = max_images
     vis.use = use or []
     vis.latent_channels = 8
     vis.betas = None
-    cfg.visualizer = vis
+    cfg.visualization = vis    
     return cfg
 
 @pytest.fixture(autouse=True)
@@ -160,7 +169,7 @@ def test_visualize_everything_minimal(tmpdir, viz):
         step=42,
         betas=betas,
         named_parameters=model.named_parameters(),
-        cfg=cfg.visualizer,
+        cfg=cfg,
     )
 
     print (tmpdir)

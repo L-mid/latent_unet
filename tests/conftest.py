@@ -10,6 +10,9 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 importlib.invalidate_caches()
 
+os.environ["WANDB_SILENT"] = "true"        # Suppress W&B terminal output
+# os.environ["WANDB_MODE"] = "disabled"       # Disables W&B entirely for tests (often better for tests)
+
 from model.config import load_config
 
 

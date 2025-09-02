@@ -2,10 +2,10 @@
 """
 latent_unet_v1/
 ├── run.py 🔹
-├── README.md
-├── pyproject.toml
-├── .gitignore
-├── .github/workflows/ci.yaml
+├── README.md 🔹
+├── pyproject.toml 🔹
+├── .gitignore 🔹
+├── .github/workflows/ci.yaml 🔹
 
 ├── configs/
 │   ├── unet_config.yaml 🔹
@@ -41,7 +41,7 @@ latent_unet_v1/
 │   └── schedule.py 🔹
 
 ├── trainer/
-│   ├── train_loop.py XXX
+│   ├── train_loop.py XXX (working on)
 │   ├── cluster_utils.py 🔹
 │   ├── logger.py 🔹
 │   ├── optim_utils.py 🔹
@@ -49,9 +49,9 @@ latent_unet_v1/
 │   └── losses.py 🔹
 
 ├── data/
-│   ├── loader.py
-│   ├── mock_dataset.py
-│   └── dataset_registry.py
+│   ├── loader.py 🔹
+│   ├── mock_dataset.py 🔹
+│   └── dataset_registry.py 🔹
 
 ├── utils/
 │   ├── debug.py 🔹
@@ -95,7 +95,7 @@ latent_unet_v1/
 │   ├── integration/
 │   │   ├── test_unet.py 🔹
 │   │   ├── test_integrated_forward_process.py ?
-│   │   ├── test_train_loop.py 
+│   │   ├── test_train_loop.py 🔹
 │   │   └── test_ddpm_ddim_edm.py🔹
 │   │
 │   ├── end_to_end/
@@ -105,15 +105,15 @@ latent_unet_v1/
 │   │
 │   ├── subsystems/                
 │   │   ├── checkpointing/
-│   │   │   ├── test_tensorstore.py
-│   │   │   ├── test_tensorstore_schema_utils.py
-│   │   │   ├── test_zarr.py
-│   │   │   └── test_vanilla_checkpointing.py
+│   │   │   ├── test_tensorstore.py 🔹
+│   │   │   ├── test_tensorstore_schema_utils.py 🔹
+│   │   │   ├── test_zarr.py 🔹
+│   │   │   └── test_vanilla_checkpointing.py 🔹
 │   │   ├── data/
 │   │   │   └── test_data_pipeline.py 
 │   │   ├── config/
 |   |   |   ├── test_config_loading.py🔹
-│   │   │   ├── test_config_itegration.py
+│   │   │   ├── test_config_integration.py
 │   │   │   └── test_config_roundtrip.py🔹
 │   │   │
 │   │   ├── diffusion/
@@ -130,12 +130,43 @@ latent_unet_v1/
 │   │   └── test_failure_injection.py
 │   │
 │   ├── regression/
-│   │   └── test_sequential_nan_bug.py  # (placeholder)
+│   │   └── test_sequential_nan_bug.py  # (placeholder for when)
 │   │
-│   └── __init__.py
+│   └── __init__.py 
 
-82 files
+
+
+
+
+Legend:
+🔹: Implimented once - (copied direct)                      - You typed it in, but it's "dead muscle memory".
+🔺: Known            - (wrote with some copying)            - Can explain dataflow, run small tests, still peaks for APIs.
+🔸: Level 1          - (can write without help)             - Can re-impliment with <3 peaks per function, tests pass.
+🔸🔸: Level 2        - (can write and change it a bit)     - Can re-impliment model+train loop cold; contract tests all pass.       
+🔸🔸🔸: Level 3     - (can write and refactor)             - Can inject bugs and your asserts/localization catch them quickly; can swap varients easily without breaking.
+🌟: Mastered         - (automatic)                          - Can design new abstractions, refactor repo-scale systems, anticipate faliure modes easily.
+
+~82 files (not updated)
+
 """
+
+# Repo mastery priorities (using Legend in above string):
+"""
+For tracking progress in this legend scale, these are the levels needed:
+
+- Tensor/data contracts (shapes, sizes, flow) -> 20% 🔸🔸🔸 
+- Core math & algorithms (losses, diffusion schedule, EMA) -> 15% 🔸🔸
+- Architecture interfaces (ResBlock, AttentionBlock, UNet forward signatures) -> 🔸🔸🔸 (or 🌟)
+- Config schema & builder linkage -> 10% 🔸
+- Training loop order op ops -> 10% 🔸🔸🔸
+- Testing & invarients -> 10% 🔸🔸 
+- External APIs (torch, wandb, tensorstore) -> 10% 🔸
+- Logging/debug utilities -> 5% 🔺
+- CLI/plumbing -> 3% 🔹
+- Setup quirks -> 2% 🔹
+
+"""
+
 
 # Add one test per subsystem or block that:
 # Asserts config roundtrips
