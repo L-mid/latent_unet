@@ -7,6 +7,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from .dataset_registry import register_dataset
 from .tokenizer import build_tokenizer
+import importlib
 
 logger = logging.getLogger(__name__)
 

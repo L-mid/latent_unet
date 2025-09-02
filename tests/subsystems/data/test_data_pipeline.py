@@ -5,6 +5,7 @@ import shutil
 import json
 import torch
 from PIL import Image
+import importlib
 from data import build_loader
 from omegaconf import OmegaConf
 import pytest
@@ -39,6 +40,7 @@ def create_dummy_caption_dataset(tmp_path):
     return img_root, meta_file
 
 
+pytest.importorskip("open_clip", reason="tokenizers/external plugins installed (might miss some if some but not other installations)")
 # ---------------------------------------------------------------------------------
 # Test: BasicImageFolder pipeline():
 # -------------------------------------------------------------------------------
