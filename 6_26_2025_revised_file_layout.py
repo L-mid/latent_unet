@@ -51,6 +51,7 @@ latent_unet_v1/
 ├── data/
 │   ├── loader.py 🔹
 │   ├── mock_dataset.py 🔹
+│   ├── (some others) 🔹
 │   └── dataset_registry.py 🔹
 
 ├── utils/
@@ -110,7 +111,7 @@ latent_unet_v1/
 │   │   │   ├── test_zarr.py 🔹
 │   │   │   └── test_vanilla_checkpointing.py 🔹
 │   │   ├── data/
-│   │   │   └── test_data_pipeline.py 
+│   │   │   └── test_data_pipeline.py 🔹
 │   │   ├── config/
 |   |   |   ├── test_config_loading.py🔹
 │   │   │   ├── test_config_integration.py

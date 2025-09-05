@@ -4,9 +4,9 @@ import torch.nn as nn
 from diffusion.schedule import get_diffusion_schedule
 
 class ForwardProcess(nn.Module):
-    def __init__(self, schedule="cosine", timesteps=1000, device="cpu", dtype=torch.float32):
+    def __init__(self, schedule_type="cosine", timesteps=1000, device="cpu", dtype=torch.float32):
         super().__init__()
-        sched = get_diffusion_schedule(schedule_type=schedule, timesteps=timesteps)
+        sched = get_diffusion_schedule(schedule_type=schedule_type, timesteps=timesteps)
         
         self.timesteps = timesteps
 
@@ -29,11 +29,6 @@ class ForwardProcess(nn.Module):
         # Sample from q(x_t | x_0)
         if noise is None:
             noise = torch.randn_like(x_start)
-
-        print(noise.device, "noise")
-        print(t.device, "t")
-        print(x_start.device, "x_start")
-        print(self.sqrt_alphas_cumprod.device, "sqrt_alpha_cump") # on cpu
 
         sqrt_alpha = self.extract(self.sqrt_alphas_cumprod, t, x_start.shape) 
         sqrt_one_minus = self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)

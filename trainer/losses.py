@@ -37,7 +37,7 @@ def register_loss(name):
     return decorator
 
 
-SCHEDULE_REGISTRY = {}
+SCHEDULE_REGISTRY = {}  # here?
 
 def register_schedule(name):
     def decorator(fn):
@@ -125,7 +125,7 @@ class DiffusionLoss(nn.Module):
         self.max_steps = config.training.num_epochs * config.training.steps_per_epoch
 
     def get_weight(self, loss_cfg, step):
-        sched = loss_cfg.get("schedule", "constant")
+        sched = loss_cfg.get("schedule", "constant") # ?
         start = loss_cfg.get("start_weight", loss_cfg["weight"])
         end = loss_cfg.get("end_weight", loss_cfg["weight"])
 
@@ -175,12 +175,12 @@ def constant_schedule(t, alpha_t=None):
 def inverse_alpha_squared(t, alpha_t):
     return 1.0 / (alpha_t ** 2 + 1e-7)
 
-@register_schedule("linear")
-def linear_decay(t, T=1000):
+@register_schedule("linear") 
+def linear_decay(t, alpha_t=None, T=1000):
     return 1.0 - t.float() / T
 
 @register_schedule("cosine_decay")
-def cosine_decay(t, T=1000):
+def cosine_decay(t, T=1000): # might need to add alpha_t
     return 0.5 * (1 + torch.cos(torch.pi * t.float() / T))
 
 
@@ -188,17 +188,17 @@ def cosine_decay(t, T=1000):
 # CONFIG-COMPATIBLE LOSS HANDLER
 # ------------------------------------
 
-def get_loss_fn(cfg):
+def get_loss_fn(cfg):   # this is it's caller!
     loss_type = cfg.losses.type.lower()
     schedule_type = cfg.losses.schedule.type.lower()
 
     loss_fn = LOSS_REGISTRY[loss_type]
-    weight_fn = SCHEDULE_REGISTRY[schedule_type] #???
+    weight_fn = SCHEDULE_REGISTRY[schedule_type] 
 
     def wrapped(pred, target, t, alpha_t=None):
         weight = weight_fn(t, alpha_t)
-        loss, raw = loss_fn(pred, target, weight=weight)
-        return loss, raw, weight
+        loss = loss_fn(pred, target, weight=weight) 
+        return loss, weight
     
     return wrapped
 

@@ -16,9 +16,15 @@ DEPENDENT on tensorboard installation (if colab doesn't have keep in mind)
 
 try: 
     import wandb
+    from wandb.errors import CommError
     WANDB_AVAILIBLE = True
-except ImportError:
+except Exception:
+    wandb = None
+    CommError = Exception 
     WANDB_AVAILIBLE = False
+
+
+
 
 class ExperimentLogger:
     def __init__(self, cfg, output_dir="logs", use_wandb=True, debug_mode=False):
@@ -33,13 +39,19 @@ class ExperimentLogger:
         self.wandb_run = None
 
         if self.use_wandb:
-            self.wandb_run = wandb.init(
-                project=cfg.logging.project_name,
-                name=cfg.logging.run_name,
-                config=cfg,
-                dir=str(self.log_dir / "wandb"),
-                resume="allow"
-            )
+            try:
+                self.wandb_run = wandb.init(
+                    project=cfg.logging.project_name,
+                    name=cfg.logging.run_name,
+                    settings=wandb.Settings(init_timeout=10),
+                    config=cfg,
+                    dir=str(self.log_dir / "wandb"),
+                    resume="allow"
+                )
+            except CommError:
+                print("[LOGGER] W&B init failed: no internet or blocked API. Disabling W&B.")
+                self.wandb_run = None
+                self.use_wandb = False
 
         self._setup_python_logger()
 
@@ -62,7 +74,7 @@ class ExperimentLogger:
             wandb.log({tag: value}, step=step)
 
     def log_image(self, tag: str, image, step: int):
-        self.writer.add_image(tag, image, step)
+        self.writer.add_image(tag, image, step)     # it tries here
         if self.use_wandb:
             wandb.log({tag: [wandb.Image(image, caption=tag)]}, step=step)
 

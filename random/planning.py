@@ -73,7 +73,7 @@ So: 1x stretch, 2x training/viz, 4x research/math, 7x repo
 Days (started on a wednesday): 
 
 1 - research/math (4 hrs)   - repo (4 hrs)      (day off)
-2 - research/math (4 hrs)   - repo (4 hrs)
+2 - research/math (4 hrs)   - repo (4 hrs) 
 3 - training/viz (4 hrs)    - repo (4 hrs)
 4 - research/math (4 hrs)   - repo (4 hrs)
 5 - strech (4 hrs)          - repo (4 hrs)
@@ -92,7 +92,13 @@ External reading: 30% (hey look what are other people doing?)
 
 (More on this once i see schedule and am like damn wtf do i do i have here)
 
+|
+V
 """
+import random
+
+print(random.choices(["Look at other Repo.", "Do your Repo."], weights=[30, 70]))   #yay
+
 
 
 # This is for Legend marking. You'll find it in planning for some reason.

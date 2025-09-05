@@ -1,6 +1,6 @@
 
 import pytest
-pytest.importorskip("open_clip", reason="tokenizers/external plugins not installed needed for data (might miss some if some but not other installations)")
+pytest.importorskip("open_clip", reason="tokenizers/external plugins not installed currently needed for data (might miss some if some but not other installations)")
 
 import os
 import tempfile

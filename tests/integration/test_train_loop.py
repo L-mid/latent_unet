@@ -25,9 +25,7 @@ SimpleNamespaces are likly not the way to go in future, make a dict and turn it 
 I like the dummy dataset :)
 
 Really slow load off internet access, import train_loop could cause slow wandb init failure
-Dataloading test is slow, make it load less
-
-
+Really slow because 
 """
 
 
@@ -69,14 +67,19 @@ def to_plain(obj):
     # 4) Everything else: leave as is (int/float/bool/str/None)
     return obj
 
+def make_tmp_dir():
+    import tempfile
+    return tempfile.mkdtemp()
+
     
 def make_dummy_cfg():
+    tmp_dir = make_tmp_dir()
     return SimpleNamespace(  
         resume_path=None,  
         model=SimpleNamespace(
-            image_size=32,
+            image_size=4,
             in_channels=3,
-            base_channels=32,
+            base_channels=8,
             channel_multipliers=[1, 2],
         ),
         attention=SimpleNamespace(
@@ -84,9 +87,9 @@ def make_dummy_cfg():
             params=SimpleNamespace(
                 num_heads=8,
                 norm_groups=8,
-                start_layer=2,
+                start_layer=999,
                 window_size=4,
-                midblock=True,
+                midblock=False,
                 backend="auto"
             ),
         ),
@@ -99,16 +102,16 @@ def make_dummy_cfg():
         time_embedding=SimpleNamespace(
             kind="sinusoidal",
             params=SimpleNamespace(
-                dim=512
+                dim=32
             ),
         ),
         midblock=SimpleNamespace(
-            use_attention=True,
-            num_layers=2,
+            use_attention=False,
+            num_layers=1,
         ),
         updown=SimpleNamespace(
             use_skip_connections=True,
-            num_layers=2,
+            num_layers=1,
             expect_skip=True,
         ),
         final_head=SimpleNamespace(
@@ -116,7 +119,7 @@ def make_dummy_cfg():
         ),
         schedule=SimpleNamespace(
             schedule="cosine",
-            timesteps=10,                     # timesteps set to 10
+            timesteps=4,                     # timesteps set to 4
             beta_start=1e-4,
             beta_end=0.02,
         ),
@@ -133,40 +136,41 @@ def make_dummy_cfg():
             ),
         ),
         training=SimpleNamespace(
-            batch_size=32,
-            num_epochs=300,
+            batch_size=2,
+            num_epochs=1,
             amp=True,
             grad_clip=1.0,
+            vis_interval=1,    # every N epochs
+            ckpt_interval=1,   # every N epochs
         ),
         checkpoint=SimpleNamespace(
             backend="tensorstore",
             save_every=1000,
-            out_dir="checkpoints/baseline_flash"
+            out_dir=tmp_dir     # might need to str
         ),
         debug=SimpleNamespace(
-            enabled=True,
+            enabled=False,
         ),
         logging=SimpleNamespace(
-            use_wandb = True,
+            use_wandb = False,
             project_name = "latent_unet-v1",
-            run_name="baseline_128ch_flash"
+            run_name="test_minimal"
         ),
         visualization=SimpleNamespace(
             enabled=False,
-            output_dir=None,
+            output_dir=tmp_dir,    # make this tmpdir.
         ),
     )
 
-@pytest.mark.skip(reason="wandb timeout off internet, make a check for it")
-@pytest.mark.xfail(reason="wandb timeout off internet, make a check for it")
-@pytest.mark.parametrize("device", ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"])
-def test_train_one_step_runs(device):
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="training loop too slow on cpu")
+def test_train_one_step_runs():
+    device = "cuda"
     cfg_ns = make_dummy_cfg()
     plain = to_plain(cfg_ns)
     cfg = OmegaConf.create(plain)
 
 
-    # omegaconf asignment methods:
+    # omegaconf asignment methods (for device as example):
 
     # 1) direct assignment:
     cfg.device = device
@@ -208,7 +212,7 @@ def test_train_one_step_runs(device):
 def test_dummy_dataset_loading():
     loader = torch.utils.data.DataLoader(DummyDataset(num_samples=3), batch_size=4)
     for batch in loader:
-        assert "image" in batch and batch["image"].shape == (4, 3, 32, 32)  # make this less synth images loaded
+        assert "image" in batch and batch["image"].shape == (4, 3, 32, 32)  
         break
 
 

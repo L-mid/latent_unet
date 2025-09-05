@@ -4,6 +4,11 @@ import math
 from dataclasses import dataclass
 from typing import Literal, Optional
 
+# === NOTES:
+"""
+Some t-samplers at the bottom likely don't belong here.
+"""
+
 
 # ---- BETA SCHEDULE ----
 
@@ -124,6 +129,20 @@ def get_diffusion_schedule(
 )
 
 
+# Just added randomly, looked nice 
+def sample_timesteps(self, batch_size: int, device) -> torch.Tensor:
+    return torch.randint(0, self.num_steps, (batch_size,), device=device, dtype=torch.long)
 
 
+# as a class:
+class TimestepSampler:
+    def sample(self, batch_size, device): ...
+    def weights(self, t): return None   # optionally return per-t weights
 
+"""
+sampler = UniformSampler(T)
+t = sampler.sample(x.size(0), x.device)
+w = sampler.weights(t)  # e.g., p2 weight; can be None
+loss = diffusion.loss(x, t, weights=w)
+
+"""
