@@ -28,10 +28,11 @@ class ForwardProcess(nn.Module):
     def q_sample(self, x_start, t, noise=None, return_noise=False): 
         # Sample from q(x_t | x_0)
         if noise is None:
-            noise = torch.randn_like(x_start)
+            noise = torch.randn_like(x_start) # bad cuda mismatch?
 
-        sqrt_alpha = self.extract(self.sqrt_alphas_cumprod, t, x_start.shape) 
+        sqrt_alpha = self.extract(self.sqrt_alphas_cumprod, t, x_start.shape) # not on cuda!
         sqrt_one_minus = self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
+        
         x_t = sqrt_alpha * x_start + sqrt_one_minus * noise
         return (x_t, noise) if return_noise else x_t
     

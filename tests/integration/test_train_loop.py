@@ -74,6 +74,7 @@ def make_tmp_dir():
     
 def make_dummy_cfg():
     tmp_dir = make_tmp_dir()
+
     return SimpleNamespace(  
         resume_path=None,  
         model=SimpleNamespace(
