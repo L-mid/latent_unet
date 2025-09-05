@@ -204,7 +204,7 @@ def test_train_one_step_runs():
 def test_dummy_dataset_loading():
     loader = torch.utils.data.DataLoader(DummyDataset(num_samples=3), batch_size=4)
     for batch in loader:
-        assert "image" in batch and batch["image"].shape == (4, 3, 32, 32)  
+        assert "image" in batch and batch["image"].shape == (4, 3, 4, 4)  
         break
 
 

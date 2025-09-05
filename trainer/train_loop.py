@@ -28,7 +28,7 @@ def train_loop(cfg, model, dataset):
     model.to(device)
 
     sched = get_diffusion_schedule(cfg.schedule.schedule, cfg.schedule.timesteps, cfg.schedule.beta_start, cfg.schedule.beta_end)           # weird is not used I don't think belongs here.
-    diffusion = ForwardProcess(device=device)               # does not take cfg   
+    diffusion = ForwardProcess().to(device)               # does not take cfg   
     logger = ExperimentLogger(cfg) 
 
     dataloader = DataLoader(dataset, batch_size=cfg.training.batch_size)

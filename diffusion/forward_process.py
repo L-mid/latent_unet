@@ -4,7 +4,7 @@ import torch.nn as nn
 from diffusion.schedule import get_diffusion_schedule
 
 class ForwardProcess(nn.Module):
-    def __init__(self, schedule_type="cosine", timesteps=1000, device="cpu", dtype=torch.float32):
+    def __init__(self, schedule_type="cosine", timesteps=1000):     # removed: device="cpu", dtype=torch.float32, they had no functionality but prob should
         super().__init__()
         sched = get_diffusion_schedule(schedule_type=schedule_type, timesteps=timesteps)
         
