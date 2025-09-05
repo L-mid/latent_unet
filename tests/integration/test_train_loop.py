@@ -163,9 +163,9 @@ def make_dummy_cfg():
         ),
     )
 
-pytest.mark.skipif(not torch.cuda.is_available(), reason="training loop too slow on cpu")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="training loop too slow on cpu")
 def test_train_one_step_runs():
-    device = "cpu"
+    device = "cuda"
     cfg_ns = make_dummy_cfg()
     plain = to_plain(cfg_ns)
     cfg = OmegaConf.create(plain)

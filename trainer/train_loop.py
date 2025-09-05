@@ -96,8 +96,8 @@ def train_loop(cfg, model, dataset):
             if cfg.checkpoint.backend in {"noop", None}:
                 pass    # skip saving in tests
             else:
-                save_checkpoint(model, optimizer, sched, epoch=epoch, step=step, path=cfg.checkpoint.out_dir, metadata=ema)    # lol ema is metadata cause didn't build for it in tensorstore
-
+                save_checkpoint(model, optimizer, scheduler=loss_scheduler, epoch=epoch, step=step, path=cfg.checkpoint.out_dir, metadata=ema)    # lol ema is metadata cause didn't build for it in tensorstore
+                
     logger.finish()
 
 
