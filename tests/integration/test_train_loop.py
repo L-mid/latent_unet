@@ -31,7 +31,7 @@ Really slow because
 
 class DummyDataset(Dataset):
 
-    def __init__(self, num_samples=100, image_shape=(3, 32, 32), num_classes=10):
+    def __init__(self, num_samples=100, image_shape=(3, 4, 4), num_classes=10):
         self.num_samples = num_samples
         self.image_shape = image_shape
         self.num_samples = num_classes
@@ -163,7 +163,7 @@ def make_dummy_cfg():
         ),
     )
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="training loop too slow on cpu")
+pytest.mark.skipif(not torch.cuda.is_available(), reason="training loop too slow on cpu")
 def test_train_one_step_runs():
     device = "cuda"
     cfg_ns = make_dummy_cfg()
@@ -189,16 +189,7 @@ def test_train_one_step_runs():
 
 
     model = build_unet_from_config(cfg).to(device)
-
-
-    schedule = get_diffusion_schedule("cosine", cfg.schedule.timesteps, cfg.schedule.beta_start, cfg.schedule.beta_end).to(device)              # does not take cfg. Should unpack it to take cfg someday.
-    diffusion = DDPM(schedule)      # this does not make sense 
-    loss_fn = get_loss_fn(cfg)
-    optimizer = build_optimizer(model.parameters(), cfg) # not passed in to train loop 
-
-
-    batch = {"x": torch.randn(4, 3, 32, 32).to(device)}     # this is x not the dataset?
-
+ 
     dataset = DummyDataset()
 
     logs = train_loop(
