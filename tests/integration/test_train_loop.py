@@ -20,12 +20,12 @@ from modules.residual_block import get_resblock
 
 # === NOTES:
 """
-This test does not have tmpdir set up (annoying, it's a test). 
 SimpleNamespaces are likly not the way to go in future, make a dict and turn it to OmegaConf better.
 I like the dummy dataset :)
 
 Really slow load off internet access, import train_loop could cause slow wandb init failure
-Really slow because 
+
+Does NOT test loggers/checkpointers/extras. Somewhere should.
 """
 
 
@@ -145,8 +145,8 @@ def make_dummy_cfg():
             ckpt_interval=1,   # every N epochs
         ),
         checkpoint=SimpleNamespace(
-            backend="tensorstore",
-            save_every=1000,
+            backend="noop",
+            save_every=1000,    # 1000 what?
             out_dir=tmp_dir     # might need to str
         ),
         debug=SimpleNamespace(
@@ -165,7 +165,7 @@ def make_dummy_cfg():
 
 pytest.mark.skipif(not torch.cuda.is_available(), reason="training loop too slow on cpu")
 def test_train_one_step_runs():
-    device = "cuda"
+    device = "cpu"
     cfg_ns = make_dummy_cfg()
     plain = to_plain(cfg_ns)
     cfg = OmegaConf.create(plain)

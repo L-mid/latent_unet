@@ -36,3 +36,10 @@ def mock_data_config():
 def cfg_obj(request):
     # request.param will be the *string* like "unet_config"
     return request.getfixturevalue(request.param)
+
+import os, tqdm, pytest
+@pytest.fixture(autouse=True, scope="session")
+def _kill_tqdm_moniter():
+    os.environ["TQDM_DISABLE"] = "1"    # no bars in CI
+    tqdm.tqdm.monitor_interval = 0      # disabled moniter thread
+    yield

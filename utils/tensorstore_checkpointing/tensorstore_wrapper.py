@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 
 # === NOTES
 """
-Serialization of dicts is a bit odd
+Serialization of dicts is a bit odd.
+
+Tensorstore async problems in trainloop. (asyncio.windows_events still polling inside save_checkpoint). Haven't tested cause.
+
+
 """
 
 
