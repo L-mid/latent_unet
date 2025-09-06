@@ -4,7 +4,7 @@ import json
 import logging
 import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Mapping
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -23,10 +23,16 @@ except Exception:
     CommError = Exception 
     WANDB_AVAILIBLE = False
 
+class BaseLogger:
+    def log_dict(self, metrics: Mapping[str, Any], step: int) -> None: ...
+    def close(self) -> None: ...
+
+class NoopLogger(BaseLogger):
+    def log_dict(self, metrics, step): pass
+    def close(self): pass
 
 
-
-class ExperimentLogger:
+class ExperimentLogger(BaseLogger):
     def __init__(self, cfg, output_dir="logs", use_wandb=True, debug_mode=False):
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         self.log_dir = Path(output_dir) / f"{cfg.logging.project_name}_{timestamp}"
@@ -78,9 +84,9 @@ class ExperimentLogger:
         if self.use_wandb:
             wandb.log({tag: [wandb.Image(image, caption=tag)]}, step=step)
 
-    def log_dict(self, metrics: Dict[str, float], step: int):
+    def log_dict(self, metrics: Mapping[str, float], step: int):
         for k, v in metrics.items():
-            self.log_scalar(k, v, step)
+                self.log_scalar(k, float(v), step)
 
     def log_config(self, cfg):
         config_path = self.log_dir / "config.json"

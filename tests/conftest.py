@@ -10,8 +10,14 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 importlib.invalidate_caches()
 
+# WANDB
 os.environ["WANDB_SILENT"] = "true"        # Suppress W&B terminal output
 # os.environ["WANDB_MODE"] = "disabled"       # Disables W&B entirely for tests (often better for tests)
+
+# TENSORFLOW
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")  # 0=all, 1=INFO off, 2=+WARN, 3=+ERROR
+os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")  # optional; avoids extra logs on some builds
+
 
 from model.config import load_config
 
