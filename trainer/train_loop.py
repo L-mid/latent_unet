@@ -76,8 +76,8 @@ def train_loop(cfg, model, dataset):
 
                 # Log to console and optionally W&B/tensorboard
                 loss_value = float(loss.item())
-                logs = {"loss", loss_value}
-                
+                logs = {"loss": loss_value}
+
                 if logger: logger.log_scalar("loss", loss.item(), step=epoch * len(dataloader) + step)
             
             if loss_scheduler: loss_scheduler.step()  # loss thing? can it step?
