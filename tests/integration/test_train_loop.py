@@ -151,12 +151,13 @@ def make_dummy_cfg():
         ),
         logging=SimpleNamespace(
             use_wandb = False,
+            use_tb = False,
             project_name = "latent_unet-v1",
             run_name="test_minimal"
         ),
         visualization=SimpleNamespace(
             enabled=False,
-            output_dir=tmp_dir,    # make this tmpdir.
+            output_dir=tmp_dir,    
         ),
     )
 

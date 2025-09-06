@@ -6,11 +6,11 @@ import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, Mapping
 
-from torch.utils.tensorboard import SummaryWriter 
-
 # === NOTES:
 """
 DEPENDENT on tensorboard installation (if colab doesn't have keep in mind)
+
+colab has spam issues with tensorboard, harmless but noting
 """
 
 try: 
@@ -115,3 +115,16 @@ class ExperimentLogger(BaseLogger):
 
     def log_model_graph(self, model, example_input):
         self.writer.add_graph(model, example_input)    
+
+
+def build_logger(cfg) -> BaseLogger:
+    use_tb   = getattr(cfg.logging, "enable_tb", False)
+    use_wandb= getattr(cfg.logging, "enable_wandb", False)
+    if not (use_tb or use_wandb):
+        return NoopLogger()
+    return ExperimentLogger(
+        cfg=cfg,
+        output_dir= cfg.logging.output_dir,
+        use_wandb = use_wandb,
+    )
+# no tensorboard check
