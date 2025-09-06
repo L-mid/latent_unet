@@ -23,10 +23,12 @@ except Exception:
     WANDB_AVAILIBLE = False
 
 class BaseLogger:
+    def __init__(self, cfg): pass
     def log_dict(self, metrics: Mapping[str, Any], step: int) -> None: ...
     def close(self) -> None: ...
 
 class NoopLogger(BaseLogger):
+    def __init__(self, cfg): pass
     def log_dict(self, metrics, step): pass
     def close(self): pass
 

@@ -19,6 +19,8 @@ from tqdm import tqdm
 All these calls (like build_optimizer, EMA) are weird, not the same, and mabye should be crunched down.
 )
 
+Weird noop logger mechanics.
+
 """
 
 
