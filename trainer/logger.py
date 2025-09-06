@@ -24,11 +24,13 @@ except Exception:
 
 class BaseLogger:
     def __init__(self): pass
+    def log_scaler(self, tag: str, value: float, step: int) -> None: ...
     def log_dict(self, metrics: Mapping[str, Any], step: int) -> None: ...
     def close(self) -> None: ...
 
 class NoopLogger(BaseLogger):
     def __init__(self): pass
+    def log_scaler(self, tag: str, value: float, step: int): pass
     def log_dict(self, metrics, step): pass
     def close(self): pass
 
