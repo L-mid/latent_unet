@@ -74,7 +74,7 @@ class ExperimentLogger:
             wandb.log({tag: value}, step=step)
 
     def log_image(self, tag: str, image, step: int):
-        self.writer.add_image(tag, image, step)     # it tries here
+        self.writer.add_image(tag, image, step)     
         if self.use_wandb:
             wandb.log({tag: [wandb.Image(image, caption=tag)]}, step=step)
 

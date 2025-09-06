@@ -27,7 +27,6 @@ def train_loop(cfg, model, dataset):
     device = torch.device(cfg.device)
     model.to(device)
 
-    sched = get_diffusion_schedule(cfg.schedule.schedule, cfg.schedule.timesteps, cfg.schedule.beta_start, cfg.schedule.beta_end)           # weird is not used I don't think belongs here.
     diffusion = ForwardProcess().to(device)               # does not take cfg   
     logger = ExperimentLogger(cfg) 
 
@@ -76,6 +75,9 @@ def train_loop(cfg, model, dataset):
                 if ema: ema.update(model)
 
                 # Log to console and optionally W&B/tensorboard
+                loss_value = float(loss.item())
+                logs = {"loss", loss_value}
+                
                 if logger: logger.log_scalar("loss", loss.item(), step=epoch * len(dataloader) + step)
             
             if loss_scheduler: loss_scheduler.step()  # loss thing? can it step?
@@ -99,6 +101,7 @@ def train_loop(cfg, model, dataset):
                 save_checkpoint(model, optimizer, scheduler=loss_scheduler, epoch=epoch, step=step, path=cfg.checkpoint.out_dir, metadata=ema)    # lol ema is metadata cause didn't build for it in tensorstore
                 
     logger.finish()
+    return logs
 
 
 
