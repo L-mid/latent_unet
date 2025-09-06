@@ -13,7 +13,6 @@ from torch.utils.tensorboard import SummaryWriter
 DEPENDENT on tensorboard installation (if colab doesn't have keep in mind)
 """
 
-
 try: 
     import wandb
     from wandb.errors import CommError
@@ -32,14 +31,23 @@ class NoopLogger(BaseLogger):
     def close(self): pass
 
 
+def _make_tb_writer(log_dir=None):
+    if os.getenv("ENABLE_TB", 0).lower() not in ("1", "true", "yes"):
+        return None
+    # Import ONLY when actually needed
+    from torch.utils.tensorboard import SummaryWriter
+    return SummaryWriter(log_dir) if log_dir else SummaryWriter()
+
+
 class ExperimentLogger(BaseLogger):
     def __init__(self, cfg, output_dir="logs", use_wandb=True, debug_mode=False):
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         self.log_dir = Path(output_dir) / f"{cfg.logging.project_name}_{timestamp}"
         self.log_dir.mkdir(parents=True, exist_ok=True)
+        log_dir=str(self.log_dir / "tensorboard")
 
         self.debug_mode = debug_mode 
-        self.writer = SummaryWriter(log_dir=str(self.log_dir / "tensorboard"))
+        self.writer = _make_tb_writer(log_dir)
 
         self.use_wandb = use_wandb and WANDB_AVAILIBLE and cfg.logging.use_wandb
         self.wandb_run = None
