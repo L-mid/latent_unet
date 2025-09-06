@@ -22,13 +22,13 @@ All these calls (like build_optimizer, EMA) are weird, not the same, and mabye s
 """
 
 
-def train_loop(cfg, model, dataset):
+def train_loop(cfg, model, dataset, logger=None):
     # --------- 1. Setup -----------
     device = torch.device(cfg.device)
     model.to(device)
 
     diffusion = ForwardProcess().to(device)               # does not take cfg   
-    logger = ExperimentLogger(cfg) 
+    logger = logger         # ExperimentLogger(cfg) or NoopLogger() (others too)
 
     dataloader = DataLoader(dataset, batch_size=cfg.training.batch_size)
     optimizer = build_optimizer(model.parameters(), cfg)                       

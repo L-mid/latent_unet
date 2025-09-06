@@ -5,16 +5,13 @@ import torch
 import pytest
 from trainer.train_loop import train_loop
 from model.build_unet import build_unet_from_config
-from diffusion.ddpm import DDPM
-from trainer.losses import get_loss_fn 
-from trainer.optim_utils import build_optimizer              
-from diffusion.schedule import get_diffusion_schedule
 from torch.utils.data import Dataset
 
 from typing import Mapping, Sequence
 from types import SimpleNamespace
 from omegaconf import OmegaConf
 import types
+from trainer.logger import NoopLogger
 
 from modules.residual_block import get_resblock
 
@@ -192,10 +189,13 @@ def test_train_one_step_runs():
  
     dataset = DummyDataset()
 
+    logger = NoopLogger()
+
     logs = train_loop(
         cfg=cfg,
         model=model,
         dataset=dataset,
+        logger=logger,
     )
 
     assert "loss" in logs
