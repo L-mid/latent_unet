@@ -16,6 +16,6 @@ def test_tb_wandb_smoke(tmp_path):
 
     logger = build_logger(cfg)
     logger.log_dict({"loss": 0.123}, step=0)
-    logger.close()
+    logger.finish()
 
 
