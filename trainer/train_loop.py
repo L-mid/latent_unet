@@ -60,7 +60,7 @@ def train_loop(cfg, model, dataset, logger=None):
 
                 with autocast(device_type=str(device), enabled=cfg.training.amp):
                     noise_pred = model(x_noisy, t) 
-                    loss, _ = loss_fn(noise_pred, noise, t) # here
+                    loss, _ = loss_fn(noise_pred, noise, t) 
 
                 debug_log(f"Step {step} | Loss: {loss.item():.4f}", name="train_loop")
 
