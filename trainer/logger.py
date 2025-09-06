@@ -26,13 +26,13 @@ class BaseLogger:
     def __init__(self): pass
     def log_scalar(self, tag: str, value: float, step: int) -> None: ...
     def log_dict(self, metrics: Mapping[str, Any], step: int) -> None: ...
-    def close(self) -> None: ...
+    def finish(self) -> None: ...
 
 class NoopLogger(BaseLogger):
     def __init__(self): pass
     def log_scalar(self, tag: str, value: float, step: int): pass
     def log_dict(self, metrics, step): pass
-    def close(self): pass
+    def finish(self): pass
 
 
 def _make_tb_writer(log_dir=None):
