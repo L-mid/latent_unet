@@ -66,6 +66,6 @@ def test_bug_cause(unet_config):
     t = torch.randint(low=0, high=1000, size=(x.size(0),), dtype=torch.long)
 
     with torch.no_grad():
-        y_cpu = model(x.cpu()).float()
-        y_gpu = model.to("cuda")(x.cuda()).float().cpu()
+        y_cpu = model(x.cpu(), t.cpu()).float()
+        y_gpu = model.to("cuda")(x.cuda(), t.cuda()).float().cpu()
     torch.testing.assert_close(y_cpu, y_gpu, rtol=1e-3, atol=1e-3)
