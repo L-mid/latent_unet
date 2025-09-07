@@ -57,7 +57,7 @@ latent_unet_v1/
 ├── utils/
 │   ├── debug.py 🔹
 │   ├── visualizer.py 🔹
-│   ├── memory_tools.py
+│   ├── memory_tools.py 🔹
 │   ├── failure_injection.py
 │   ├── tensor_inspect.py
 │   ├── vanilla_checkpointing.py 🔹

@@ -19,3 +19,4 @@ def test_tb_wandb_smoke(tmp_path):
     logger.finish()
 
 
+# never clears itself?

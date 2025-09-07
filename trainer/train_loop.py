@@ -9,7 +9,6 @@ from utils.visualizer import visualize_everything
 from trainer.logger import ExperimentLogger
 from trainer.optim_utils import build_optimizer, build_scheduler
 from trainer.ema_utils import EMA
-from diffusion.schedule import get_diffusion_schedule
 from trainer.losses import get_loss_fn
 from diffusion.forward_process import ForwardProcess
 from tqdm import tqdm
@@ -20,6 +19,9 @@ All these calls (like build_optimizer, EMA) are weird, not the same, and mabye s
 )
 
 Weird noop logger mechanics.
+
+
+There were bad warnings before. Something between 'build logger' and Experiment logger is now rid of them. 
 
 """
 
