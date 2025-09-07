@@ -38,27 +38,9 @@ def test_unet_amp_autocast_forward(unet_config):
 
     assert torch.isfinite(out).all(), "AMP output contains NaN/Inf"
 
-@pytest.mark.xfail()
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_unet_output_consistency_vs_cpu(unet_config):
     # Compare CPU and CUDA outputs (sanity, not exact match).
-    model_cpu = build_unet_from_config(unet_config).cpu().eval()
-    model_gpu = build_unet_from_config(unet_config).cuda().eval()
-
-    input_cpu = torch.randn(1, unet_config.model.in_channels, 64, 64)
-    t_cpu = torch.randint(low=0, high=1000, size=(input_cpu.size(0),), dtype=torch.long)
-
-    input_gpu = input_cpu.clone().cuda() # uh
-    t_gpu = torch.randint(low=0, high=1000, size=(input_gpu.size(0),), dtype=torch.long)
-
-    with torch.no_grad():
-        out_cpu = model_cpu(input_cpu, t_cpu)
-        out_gpu = model_gpu(input_gpu, t_gpu).cpu()
-
-    torch.testing.assert_close(out_cpu.float(), out_gpu.float(), rtol=1e-3, atol=1e-3)
-
-def test_bug_cause(unet_config):
-
     torch.manual_seed(0); torch.cuda.manual_seed_all(0)
     model = build_unet_from_config(unet_config).eval()
     
