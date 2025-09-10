@@ -4,8 +4,10 @@ import torch.nn as nn
 from diffusion.schedule import get_diffusion_schedule
 
 class ForwardProcess(nn.Module):
-    def __init__(self, schedule_type="cosine", timesteps=1000):     # removed: device="cpu", dtype=torch.float32, they had no functionality but prob should
+    def __init__(self, cfg=None, schedule_type="cosine", timesteps=1000):     # removed: device="cpu", dtype=torch.float32, they had no functionality but prob should
         super().__init__()
+
+        if cfg: schedule_type = cfg.schedule.schedule_type   
         sched = get_diffusion_schedule(schedule_type=schedule_type, timesteps=timesteps)
         
         self.timesteps = timesteps
@@ -28,7 +30,7 @@ class ForwardProcess(nn.Module):
     def q_sample(self, x_start, t, noise=None, return_noise=False): 
         # Sample from q(x_t | x_0)
         if noise is None:
-            noise = torch.randn_like(x_start) # bad cuda mismatch?
+            noise = torch.randn_like(x_start) 
 
         sqrt_alpha = self.extract(self.sqrt_alphas_cumprod, t, x_start.shape) # not on cuda!
         sqrt_one_minus = self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)

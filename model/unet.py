@@ -17,7 +17,7 @@ class UNet(nn.Module):
         self.in_channels = in_channels
         self.base_channels = base_channels
         self.time_embedding = time_embedding
-        self.downs = nn.ModuleList(downs) # fix for normalization
+        self.downs = nn.ModuleList(downs) 
         self.mid = mid
         self.ups = nn.ModuleList(ups)
         self.final_head = final_head

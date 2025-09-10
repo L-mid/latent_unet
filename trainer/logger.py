@@ -5,6 +5,7 @@ import logging
 import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, Mapping
+from utils.failure_injection_utils.failpoints import failpoints
 
 # === NOTES:
 """
@@ -55,23 +56,35 @@ class ExperimentLogger(BaseLogger):
 
         self.use_wandb = use_wandb and WANDB_AVAILIBLE and cfg.logging.use_wandb
         self.wandb_run = None
-
-        if self.use_wandb:
-            try:
-                self.wandb_run = wandb.init(
-                    project=cfg.logging.project_name,
-                    name=cfg.logging.run_name,
-                    settings=wandb.Settings(init_timeout=10),
-                    config=cfg,
-                    dir=str(self.log_dir / "wandb"),
-                    resume="allow"
-                )
-            except CommError:
-                print("[LOGGER] W&B init failed: no internet or blocked API. Disabling W&B.")
-                self.wandb_run = None
-                self.use_wandb = False
+        wandb_log = _init_wandb()
 
         self._setup_python_logger()
+
+        def _init_wandb():
+            exc = failpoints.should_raise("logger.wandb.init") 
+            if exc: raise exc
+                
+            if self.use_wandb:
+                try:
+                    self.wandb_run = wandb.init(
+                        project=cfg.logging.project_name,
+                        name=cfg.logging.run_name,
+                        settings=wandb.Settings(init_timeout=10),
+                        config=cfg,
+                        dir=str(self.log_dir / "wandb"),
+                        resume="allow"
+                    )
+                except CommError:
+                    print("[LOGGER] W&B init failed: no internet or blocked API. Disabling W&B.")
+                    self.wandb_run = None
+                    self.use_wandb = False
+
+            # pretend real init: return object with .log()
+            if self.use_wandb == False: 
+                class _W:
+                    def log(self, *a, **k): pass    # fake logger
+                return _W()
+
 
     def _setup_python_logger(self):
         self.logger = logging.getLogger("trainer_logger")

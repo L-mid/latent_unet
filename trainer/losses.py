@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch import nn
 from typing import Dict, Optional
 import matplotlib.pyplot as plt
+from omegaconf import OmegaConf, MISSING
 
 
 # === NOTES
@@ -188,15 +189,23 @@ def cosine_decay(t, T=1000): # might need to add alpha_t
 # CONFIG-COMPATIBLE LOSS HANDLER
 # ------------------------------------
 
-def get_loss_fn(cfg):   # this is it's caller!
+def get_loss_fn(cfg):   
     loss_type = cfg.losses.type.lower()
-    schedule_type = cfg.losses.schedule.type.lower()
+    
+    schedule_cfg = OmegaConf.select(cfg, "losses.schedule")     # safe path acess
+    if schedule_cfg is None or schedule_cfg is MISSING:
+        # no schedule selection -> skip
+        schedule_type = None
+    else:
+        schedule_type = cfg.losses.schedule.type.lower()
 
     loss_fn = LOSS_REGISTRY[loss_type]
-    weight_fn = SCHEDULE_REGISTRY[schedule_type] 
+    if schedule_type: weight_fn = SCHEDULE_REGISTRY[schedule_type] 
 
     def wrapped(pred, target, t, alpha_t=None):
-        weight = weight_fn(t, alpha_t)
+        if schedule_type: weight = weight_fn(t, alpha_t) 
+        else: weight = None
+        
         loss = loss_fn(pred, target, weight=weight) 
         return loss, weight
     

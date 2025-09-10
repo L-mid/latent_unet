@@ -12,7 +12,7 @@ import re
 zarr = pytest.importorskip("zarr", reason="zarr not installed")
 pytest_asyncio = pytest.importorskip("pytest_asyncio", reason="pytest_asyncio not installed")
 
-from utils.tensorstore_checkpointing import (
+from utils.checkpointing.tensorstore_checkpointing import (
     tensorstore_core,
     schema_utils,
     registry,

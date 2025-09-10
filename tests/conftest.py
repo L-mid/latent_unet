@@ -4,6 +4,7 @@ import os
 import pytest
 import importlib
 
+
 # Ensure root project directory is in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
@@ -17,6 +18,22 @@ os.environ["WANDB_MODE"] = "disabled"       # Disables W&B entirely for tests (o
 # TENSORFLOW
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")  # 0=all, 1=INFO off, 2=+WARN, 3=+ERROR
 os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")  # optional; avoids extra logs on some builds
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--exp",
+        action="store_true",
+        help="Run experimental tests (skipped by default)."
+    )
+
+def pytest_collection_modifyitems(config, items):
+    run_exp = config.getoption("--exp")
+    for item in items:
+        if "/experimental/" in str(item.fspath).replace("\\", "/"):
+            item.add_marker(pytest.mark.experimental)
+            if not run_exp:
+                item.add_marker(pytest.mark.skip(reason="Experiemtnal tests are skipped by default. Use --exp."))
 
 
 from model.config import load_config
@@ -49,3 +66,12 @@ def _kill_tqdm_moniter():
     os.environ["TQDM_DISABLE"] = "1"    # no bars in CI
     tqdm.tqdm.monitor_interval = 0      # disabled moniter thread
     yield
+
+
+@pytest.fixture
+def fp():
+    from utils.failure_injection_utils.failpoints import enable_failpoints
+    with enable_failpoints() as fp:
+        yield fp
+
+

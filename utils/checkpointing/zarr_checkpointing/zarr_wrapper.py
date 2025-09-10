@@ -53,6 +53,8 @@ def save_model(
             sub_group = group.require_group("scheduler")
             zarr_core.write_tensor(sub_group, key, serialize_dict(value)) 
 
+    # consider: saving and loading ema
+
     # Save metadata
     group.attrs["epoch"] = epoch 
     group.attrs["step"] = step
@@ -123,6 +125,9 @@ def load_model(
 
         scheduler.load_state_dict(sched_state)
         logger.info("[ZARR] Scheduler state loaded")
+
+    # consider: loading ema state
+
 
     # Read metadata
     epoch = group.attrs.get("epoch", 0)

@@ -25,7 +25,7 @@ def build_unet_from_config(cfg):
     mid_block = MidBlock(
     dim=out_channels[-1],
     time_emb_dim=cfg.time_embedding.params.dim,
-    midblock_cfg=cfg.midblock,
+    midblock_cfg=cfg.midblock,                  # interesting this is partial pass cfg
     resblock_cfg=cfg.resblock,
     attention_cfg=cfg.attention 
     )
@@ -37,7 +37,7 @@ def build_unet_from_config(cfg):
         DownBlock(
             in_ch=cfg.model.in_channels,
             out_ch=base * ch_mults[0],
-         time_emb_dim=cfg.time_embedding.params.dim,
+            time_emb_dim=cfg.time_embedding.params.dim,
             num_layers=cfg.updown.num_layers,
             debug_enabled=cfg.debug.enabled,
             resblock_cfg=cfg.resblock,
@@ -69,14 +69,12 @@ def build_unet_from_config(cfg):
 
         expect_skip = True
         skip_ch = out_channels[-(i+1)] if expect_skip else 0
-        cat_in_ch = upsample_in_ch + skip_ch   # done in up_block
 
         ups.append(
             UpBlock(
                 in_ch=upsample_in_ch,    # Due to skip connections
                 out_ch=out_ch,
                 time_emb_dim=cfg.time_embedding.params.dim,
-                expect_skip=cfg.updown.expect_skip,     # set to True
                 skip_channels=skip_ch,
                 num_layers=cfg.updown.num_layers,
                 debug_enabled=cfg.debug.enabled,       

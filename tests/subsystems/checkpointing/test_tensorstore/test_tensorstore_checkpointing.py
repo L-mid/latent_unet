@@ -27,7 +27,7 @@ pytest_asyncio = pytest.importorskip("pytest_asyncio", reason="pytest-asyncio no
 def test_tensorstore_checkpoint_roundtrip():
     # Setup dummy model / optimizer / scheduler
 
-    from utils.tensorstore_checkpointing import (
+    from utils.checkpointing.tensorstore_checkpointing import (
     tensorstore_wrapper,
     schema_utils,
     chunk_tuner,

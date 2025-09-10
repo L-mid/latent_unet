@@ -36,7 +36,7 @@ class DebugManager:
         return name in self.tracked_modules or not self.tracked_modules
     
     def set_verbose(self, flag: bool):
-        self.log_timesteps = flag 
+        self.log_timestamps = flag 
 
     def set_namespace(self, flag: bool):
         self.log_namespace = flag
@@ -63,7 +63,7 @@ def debug_section(name: str, print_enter_exit: bool = True):
             debug_log(">> Enter", name=name)
         start = time.time()
         yield
-        elapsed = time.time - start
+        elapsed = time.time() - start
         debug_log(f"<< Exit ({elapsed:.3f}s)",name=name)
     else:
         yield
@@ -76,7 +76,7 @@ def attach_debug_hooks(module, module_name=""):
         return
     
     def forward_hook(mod, inp, outp):
-        debug_log(f"Forward: {mod.__class__.__name__}, Input shape: {inp[0].shape}, Output shape: {outp.shape}, name=module_name")
+        debug_log(f"Forward: {mod.__class__.__name__}, Input shape: {inp[0].shape}, Output shape: {outp.shape}, name={module_name}")
 
     module.register_forward_hook(forward_hook)
 

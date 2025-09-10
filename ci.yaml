@@ -8,7 +8,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  main:
     run-on: ubuntu-latest
     strategy:
     matrix: 
@@ -38,5 +38,14 @@ jobs:
     run: |
       pytest tests/subsystems --maxfail=3 --disable-warnings
 
+  experimental:
+    runs-on: unbuntu-latest
+    continue-on-error: true # <-- experimental failures won't fail the workflow
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with { python-version: "3.11" }
+    - run: pip install -e .[test]
+    - run: pytest --run-experimental -m experimental
 
 

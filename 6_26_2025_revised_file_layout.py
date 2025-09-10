@@ -58,8 +58,8 @@ latent_unet_v1/
 │   ├── debug.py 🔹
 │   ├── visualizer.py 🔹
 │   ├── memory_tools.py 🔹
-│   ├── failure_injection.py
-│   ├── tensor_inspect.py
+│   ├── failure_injection.py 🔹
+│   ├── tensor_inspect.py 🔹
 │   ├── vanilla_checkpointing.py 🔹
 │   │
 │   ├── zarr_checkpointing/ 🔹
@@ -76,9 +76,9 @@ latent_unet_v1/
 │       └── remote_utils.py 🔹
 
 ├── helpers/
-│   ├── mock_configs.py
-│   ├── fake_model.py
-│   ├── fake_data.py
+│   ├── mock_configs.py 🔹
+│   ├── fake_model.py 🔹
+│   ├── dummy_data.py 🔹
 │   └── test_utils.py 🔹
 
 ├── tests/
@@ -95,14 +95,12 @@ latent_unet_v1/
 │   │
 │   ├── integration/
 │   │   ├── test_unet.py 🔹
-│   │   ├── test_integrated_forward_process.py ?
 │   │   ├── test_train_loop.py 🔹
 │   │   └── test_ddpm_ddim_edm.py🔹
 │   │
 │   ├── end_to_end/
-│   │   ├── test_cuda_health.py
-│   │   ├── test_training_pipeline.py
-│   │   └── test_sampling_loop.py
+│   │   ├── test_cuda_health.py 🔹
+│   │   └── test_training_pipeline.py
 │   │
 │   ├── subsystems/                
 │   │   ├── checkpointing/
@@ -123,12 +121,13 @@ latent_unet_v1/
 │   │   │   ├── test_ddpm.py 🔹
 │   │   │   ├── test_ddim.py 🔹
 │   │   │   ├── test_edm.py 🔹
+│   │   │   ├── test_sampler_utils.py 🔹
 │   │   │   ├── test_losses.py 🔹
 │   │   │   └── test_sampler_registry.py 🔹
 │   │   │
 │   │   ├── test_visualizer.py 🔹
-│   │   ├── test_debug_hooks.py 
-│   │   └── test_failure_injection.py
+│   │   ├── test_debug_hooks.py 🔹
+│   │   └── test_failure_injection.py (needs a sample file made for it!)
 │   │
 │   ├── regression/
 │   │   └── test_sequential_nan_bug.py  # (placeholder for when)
@@ -143,7 +142,7 @@ Legend:
 🔹: Implimented once - (copied direct)                      - You typed it in, but it's "dead muscle memory".
 🔺: Known            - (wrote with some copying)            - Can explain dataflow, run small tests, still peaks for APIs.
 🔸: Level 1          - (can write without help)             - Can re-impliment with <3 peaks per function, tests pass.
-🔸🔸: Level 2        - (can write and change it a bit)     - Can re-impliment model+train loop cold; contract tests all pass.       
+🔸🔸: Level 2        - (can write and change it a bit)      - Can re-impliment model+train loop cold; contract tests all pass.       
 🔸🔸🔸: Level 3     - (can write and refactor)             - Can inject bugs and your asserts/localization catch them quickly; can swap varients easily without breaking.
 🌟: Mastered         - (automatic)                          - Can design new abstractions, refactor repo-scale systems, anticipate faliure modes easily.
 

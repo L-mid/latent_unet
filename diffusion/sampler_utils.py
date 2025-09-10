@@ -67,7 +67,7 @@ def debug_denoising(model, x, t, cond=None):
     start = time.time()
     pred = model(x, t, cond)
     elapsed = time.time() - start
-    print(f"[Step {t.item()}] u: {pred.mean.item():3f} σ: {pred.std().item():.3f} | Time: {elapsed:3f}s")
+    print(f"[Step {t.item()}] u: {pred.mean().item():3f} σ: {pred.std().item():.3f} | Time: {elapsed:3f}s")
     return pred
 
 

@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from torch.amp import GradScaler, autocast
 from utils.debug import debug_log, debug_section 
 
-from utils.tensorstore_checkpointing import save_checkpoint, load_checkpoint
+from utils.checkpointing.tensorstore_checkpointing import save_checkpoint, load_checkpoint
 from utils.visualizer import visualize_everything
 from trainer.logger import ExperimentLogger
 from trainer.optim_utils import build_optimizer, build_scheduler

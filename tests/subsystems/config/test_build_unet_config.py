@@ -87,7 +87,7 @@ def test_build_unet_config_with_mocked_modules(cfg, test_config):
                 args = call.kwargs
                 expected_keys = {
                     "in_ch", "out_ch", "time_emb_dim", "num_layers", "debug_enabled", 
-                    "resblock_cfg", "attention_cfg", "expect_skip", "skip_channels", "use_attention"
+                    "resblock_cfg", "attention_cfg", "skip_channels", "use_attention"
                 } 
                 assert set(args.keys()) == expected_keys
 

@@ -23,7 +23,7 @@ class ToyModel(torch.nn.Module):
 @pytest.mark.skipif(zarr is None, reason="zarr not installed")
 def test_full_zarr_checkpoint_roundtrip():
 
-    from utils.zarr_checkpointing import (
+    from utils.checkpointing.zarr_checkpointing import (
     zarr_wrapper,
     zarr_core
 )

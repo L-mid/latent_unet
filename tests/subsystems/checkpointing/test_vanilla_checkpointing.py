@@ -3,14 +3,14 @@ import os
 import torch
 import torch.nn as nn
 import tempfile
-from utils.vanilla_checkpointing import save_checkpoint, load_checkpoint
+from utils.checkpointing.vanilla_checkpointing import save_checkpoint, load_checkpoint
 from model.unet import UNet
 from model.build_unet import build_unet_from_config
 from trainer.optim_utils import build_optimizer
 from trainer.ema_utils import EMA, EMASchedule
 import pytest
 from omegaconf import OmegaConf, omegaconf, DictConfig, ListConfig
-from utils.vanilla_checkpointing import save_checkpoint_atomic
+from utils.checkpointing.vanilla_checkpointing import save_checkpoint_atomic
 
 
 def tiny_unet_cfg():
