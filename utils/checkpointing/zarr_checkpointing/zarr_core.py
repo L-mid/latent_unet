@@ -72,7 +72,7 @@ def write_tensor(group: zarr.Group, name: str, tensor: torch.Tensor, chunks: tup
     arr[:] = array_data
 
     logger.info(f"[ZARR] Wrote tensor '{name}' with shape {tensor.shape}")
-    return arr #could be this?
+    return arr 
 
 # ------------------------------------------------------------------------------------
 # Tensor read 

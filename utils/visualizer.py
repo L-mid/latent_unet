@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import torchvision.utils as vutils
 from einops import rearrange
 import numpy as np
+from utils.failure_injection_utils.failpoints import failpoints
 
 # === NOTES:
 """
@@ -159,6 +160,9 @@ def visualize_everything(
     if not cfg or not cfg.visualization.enabled:
         return
 
+    exc = failpoints.should_raise("visualizer.visualize_everything")        # one day will be visualizer
+    if exc: raise exc
+
     save_path = cfg.visualization.output_dir
     os.makedirs(save_path, exist_ok=True)
 
@@ -180,6 +184,8 @@ def visualize_everything(
             fn(**base_kwargs)
         except Exception as e:
             raise RuntimeError(f"Failed to run visualizer '{name}': {e}")
+        
+    return True
 
 
 

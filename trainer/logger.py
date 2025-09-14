@@ -37,9 +37,7 @@ class NoopLogger(BaseLogger):
 
 
 def _make_tb_writer(log_dir=None):
-    if os.getenv("ENABLE_TB", 0).lower() not in ("1", "true", "yes"):
-        return None
-    # Import ONLY when actually needed
+    # Import ONLY when actually needed (used to be an env check here)
     from torch.utils.tensorboard import SummaryWriter
     return SummaryWriter(log_dir) if log_dir else SummaryWriter()
 
@@ -56,34 +54,38 @@ class ExperimentLogger(BaseLogger):
 
         self.use_wandb = use_wandb and WANDB_AVAILIBLE and cfg.logging.use_wandb
         self.wandb_run = None
-        wandb_log = _init_wandb()
 
         self._setup_python_logger()
 
         def _init_wandb():
             exc = failpoints.should_raise("logger.wandb.init") 
             if exc: raise exc
-                
+
             if self.use_wandb:
                 try:
                     self.wandb_run = wandb.init(
-                        project=cfg.logging.project_name,
+                        project=cfg.logging.project_name, 
                         name=cfg.logging.run_name,
                         settings=wandb.Settings(init_timeout=10),
                         config=cfg,
                         dir=str(self.log_dir / "wandb"),
                         resume="allow"
                     )
-                except CommError:
+                    print("[LOGGER] Wandb init succeeded.")
+                except Exception:   
                     print("[LOGGER] W&B init failed: no internet or blocked API. Disabling W&B.")
                     self.wandb_run = None
                     self.use_wandb = False
+                    print(f"[LOGGER] Wandb failed and returned {use_wandb} as use wandb")
 
             # pretend real init: return object with .log()
             if self.use_wandb == False: 
-                class _W:
-                    def log(self, *a, **k): pass    # fake logger
-                return _W()
+                    class _W:
+                        def log(self, *a, **k): pass    # fake .log(). kept just in case 
+                        def log_dict(self, *a, **k): pass  
+                    return _W()
+        
+        wandb_log = _init_wandb() 
 
 
     def _setup_python_logger(self):
@@ -100,7 +102,7 @@ class ExperimentLogger(BaseLogger):
         self.logger.addHandler(ch)
 
     def log_scalar(self, tag: str, value: float, step: int):
-        self.writer.add_scalar(tag, value, step)
+        self.writer.add_scalar(tag, value, step) # here
         if self.use_wandb:
             wandb.log({tag: value}, step=step)
 
@@ -135,8 +137,8 @@ class ExperimentLogger(BaseLogger):
 
 
 def build_logger(cfg) -> BaseLogger:
-    use_tb   = getattr(cfg.logging, "enable_tb", False)
-    use_wandb= getattr(cfg.logging, "enable_wandb", False)
+    use_tb   = getattr(cfg.logging, "use_tb", False)
+    use_wandb= getattr(cfg.logging, "use_wandb", False)
     if not (use_tb or use_wandb):
         return NoopLogger()
     return ExperimentLogger(

@@ -58,7 +58,7 @@ def save_model(
     # Save metadata
     group.attrs["epoch"] = epoch 
     group.attrs["step"] = step
-    group.attrs["extra"] = extra or {}
+    group.attrs["extra"] = extra or {}  # {"epoch_completed": N, "epoch_next": N+1, "global_step": S, ...}
 
 
 # ------------------------------------------------------------------------------
@@ -86,7 +86,7 @@ def load_model(
         tensor = zarr_core.read_tensor(model_group, name)
         state_dict[name] = tensor
 
-    model.load_state_dict(state_dict, strict=strict)
+    model.load_state_dict(state_dict, strict=strict)        # what does strict do?
     logger.info(f"[ZARR] Model weights loaded (strict={strict})")
 
     # Load optimizer state
@@ -132,7 +132,7 @@ def load_model(
     # Read metadata
     epoch = group.attrs.get("epoch", 0)
     step = group.attrs.get("step", 0)
-    extra = group.attrs.get("extra", {})
+    extra = group.attrs.get("extra", {})    # {"epoch_completed": N, "epoch_next": N+1, "global_step": S, ...}
 
     logger.info(f"[ZARR] Metadata loaded: epoch={epoch}, step={step}")
 

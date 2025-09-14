@@ -9,7 +9,7 @@ import io
 import sys
 
 """
-UNTESTED. 
+UNTESTED. cool but unused. 
 """
 
 class FailureInjector:

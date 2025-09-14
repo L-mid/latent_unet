@@ -14,7 +14,7 @@ What I actually do.
 
 Weighting:
 70% on building/debugging codebase -> (what I'm doing now almost exactly).
-20% on math/paper recreation -> conceptual musle matters, after repo stable.
+20% on math/paper recreation -> conceptual mucsle matters, after repo stable.
 10% on training runs -> treat as demonstrations, not main practice until base is reliable.
 
 """
@@ -73,11 +73,11 @@ So: 1x stretch, 2x training/viz, 4x research/math, 7x repo
 Days (started on a wednesday): 
 
 1 - research/math (4 hrs)   - repo (4 hrs)      (day off)
-2 - research/math (4 hrs)   - repo (4 hrs) 🔹
+2 - research/math (4 hrs)   - repo (4 hrs) 
 3 - training/viz (4 hrs)    - repo (4 hrs)
 4 - research/math (4 hrs)   - repo (4 hrs)
-5 - strech (4 hrs)          - repo (4 hrs)
-6 - research/math (4 hrs)   - repo (4 hrs)
+5 - stretch (4 hrs)          - repo (4 hrs)
+6 - research/math (4 hrs)   - repo (4 hrs)🔹
 7 - training/viz (4 hrs)    - repo (4 hrs)
 
 """
@@ -88,7 +88,7 @@ On "look at other repos" vs "look at others":
 
 Potental allocation split:
 Your-repo: 70% (work on your own)
-External reading: 30% (hey look what are other people doing?)
+External reading: 30% (hey look what are other people doing?) / Maybe toturials 
 
 (More on this once i see schedule and am like damn wtf do i do i have here)
 
@@ -98,6 +98,136 @@ V
 import random
 
 print(random.choices(["Look at other Repo.", "Do your Repo."], weights=[30, 70]))   #yay
+
+
+# For when "['Look at other Repo']":
+"""
+
+There's a ramp and order to this:
+1) Learn-by-running (tutorial level)
+    Hugging Face's Diffusion Course: unit 1. (https://huggingface.co/learn/diffusion-course/en/unit1/1). 
+
+2) Minimal PyTorch implementation
+lucidrains/denoising-diffusion-pytorch + "The 'First Repo' plan (2nd down in "Learning from Repos", do it to completion, then move on).
+
+3) Canonical/production-ish reference
+    OpenAI inproved-diffusion. This repo. 
+    Treat as "spec" once comfortable with above. 
+
+
+Also consider finsishing that huggingface tutorial looked fun.
+Maybe as stretch.
+
+
+-- main
+The idea is to learn parts, not the whole.
+
+1) Set your target.
+    One sentence goal: "From repo X I want to learn Y (e.g, EMA + training loop design)
+    and reproduce Z (e.g., DDIM sampling) on a toy dataset".
+
+    Scope guardrails: Decide what you will not learn this round (e.g., multi-node DDP, exotic schedulers).
+
+    
+2) Do three passes (increasing depth)
+
+Pass A -- Map:
+    Skim README, examples, configs/, train.py/CLI
+    Collect nouns (entities: Dataset, UNet, Sampler) and verbs (fit, sample, save_ckpt).
+    Draw a 5-box dataflow: config -> builder -> model -> loop -> outputs.
+
+Pass B - Run:
+    Create a minimal env; run the smallest example end-to-end with fixed seed.
+    Save: exact CLI, config snapshot, stdout, first checkpoint, first samples.
+    Note all side-effects (folders, logs, metrics). This becomes your ground truth.
+
+Pass C - Trace:
+    Set breakpoints or add temporary logs through the hot path:
+    entrypoint -> config parse -> model build -> forward -> loss -> backward -> optimizer -> checkpoint.
+    Write a short "walkthrough notebook" that prints tensor shapes and key values for one batch.
+
+    
+3) Build the skeleton map
+    Entrypoints: scripts/CLI, main functions.
+    Configs: where defaults come from; override order; how objects are built.
+    Builders/factories: build_unet, build_sampler, etc.
+    Training loop: where step happens; gradient/AMP/EMA; logging cadence.
+    I/O: dataset pipeline -> transforms -> batching -> device.
+    State: checkpoint format; resume logic; RNG seeding.
+    Tests: what's covered vs missing.
+
+4) Thin-slice reimplementation (parity first)
+    Pick one slice and match it numerically on a toy problem:
+        Example slices: beta schedule, noise add/denoise step, UNet forward, EMA update, DDIM step.
+        Write a tiny pytest that:
+            1: Imports their function to produce a value,
+            2. Runs your function on the same inputs,
+            3. Asserts closeness (e.g., atol=1e-6).
+        Only when this passes, expand the slice (e.g., from one sampling step -> full sampler.)
+
+5) Life patterns, not files
+Extract design ideas, not just code:
+    Config -> Builder -> Component pattern (clean seams, swappable blocks).
+    Logging/metrics contract (step, epoch, sample hooks).
+    Checkpoint contract (what keys live where; forward/backward compatibility).
+    Error-handling + invarients (assert shapes/dtypes/devices early).
+
+6) Write "explainer artifacts" as you go
+Keep these minimal but durable:
+    Call graph for one training step (who calls whom).
+    Shape table for a single batch (N, C, H, W at each block).
+    Glossary of repo-specific terms.
+    Design tradeoffs you notices (why they chose X over Y).
+
+7) Critique with prompts that reveal depth
+    What are the three strongest engineering choices here?
+    Where does the technical debt likely live?
+    If you had to port this to a different data modality, what breask first?
+    What's the smallest change that would cause silent wrongness? (add a test for it)
+
+8) Reproduce a result (scaled-down)
+    Fix all seeds; log library versions.
+    Use a tiny dataset (e.g., 1k images) and a reduced model to reproduce a curve or sample grid.
+    Capture a "before/after" plot or grid; record exact CLI/config to make it repeatable.
+
+9) Rebuild the piece your way
+Now implement the same subsystem in your own style (clean API, tests, docstrings). Keep:
+    Unit tests (numerical parity),
+    Golden samples (known outputs for fixed seed),
+    Load/save parity (their ckpt <-> your ckpt if feasible).
+
+10) Publish a learning note
+Short write-up: goal, slice, parity proof, what you'd reuse, what you'd change. 
+May become portfolio-quality evidence of understanding.
+
+
+Concrete checklists
+    Fast tools:
+        Create a clean env; install the repo
+        rg / ripgrep , to find entrypoints: rg "if __name__|argparse|Trainer|fit\(|build_|main\("
+        pytest -k <keyword> to run a narrow test
+        torch.manual_seed(0) (and CUDA/cudnn seeds) for reproducibility. 
+        line_profiler or simple timers around forward/backward
+        assert shape/device/dtype at module boundaries
+        Open repo tree:
+        Windows PowerShell: Get-ChildItem -Recurse - Depth 2 | Where-Object{$_.PSIsContainer} | Select-Object FullName
+
+
+    Diffusion-repo specifics to map:
+        Beta/noise schedule & parameterization (ε-prediction vs x₀-prediction)
+        Timestep embedding path and where it enters blocks
+        Attention variants (vanilla/window/flash) and where used
+        EMA: update rate schedule and when applied (before/after optimizer.step)
+        Mixed precision + GradScaler boundaries
+        Checkpoint contents: model/optimizer/EMA/step and resume edge-cases
+        Sample hooks (how images are denormed/saved)
+
+    
+
+
+
+
+"""
 
 
 

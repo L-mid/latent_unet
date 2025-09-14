@@ -55,7 +55,7 @@ def create_mock_config():
 
 # ---- Variant for bigger model tests ----
 def create_large_mock_config():
-    # Returns a larger but still fast-to-test config.
+    # Returns a larger but still fast-to-test config. 
     cfg = {
         "model": {
             "in_channels": 3,

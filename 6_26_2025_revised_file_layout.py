@@ -41,7 +41,7 @@ latent_unet_v1/
 │   └── schedule.py 🔹
 
 ├── trainer/
-│   ├── train_loop.py XXX (working on)
+│   ├── train_loop.py 🔹 
 │   ├── cluster_utils.py 🔹
 │   ├── logger.py 🔹
 │   ├── optim_utils.py 🔹
@@ -127,7 +127,7 @@ latent_unet_v1/
 │   │   │
 │   │   ├── test_visualizer.py 🔹
 │   │   ├── test_debug_hooks.py 🔹
-│   │   └── test_failure_injection.py (needs a sample file made for it!)
+│   │   └── test_failure_injection.py 🔹
 │   │
 │   ├── regression/
 │   │   └── test_sequential_nan_bug.py  # (placeholder for when)
