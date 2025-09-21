@@ -6,7 +6,7 @@ from utils.debug import debug_log, debug_section
 
 from utils.checkpointing.tensorstore_checkpointing import save_checkpoint, load_checkpoint
 from utils.visualizer import visualize_everything
-from trainer.logger import ExperimentLogger
+from trainer.logger import build_logger
 from trainer.optim_utils import build_optimizer, build_scheduler
 from trainer.ema_utils import EMA
 from trainer.losses import get_loss_fn
@@ -26,13 +26,13 @@ There were bad warnings before. Something between 'build logger' and Experiment 
 """
 
 
-def train_loop(cfg, model, dataset, logger=None):
+def train_loop(cfg, model, dataset):
     # --------- 1. Setup -----------
     device = torch.device(cfg.device)
     model.to(device)
 
     diffusion = ForwardProcess().to(device)               # does not take cfg   
-    logger = logger         # ExperimentLogger(cfg) or NoopLogger() (others too)
+    logger = build_logger(cfg)
 
     dataloader = DataLoader(dataset, batch_size=cfg.training.batch_size)
     optimizer = build_optimizer(model.parameters(), cfg)                       
@@ -45,7 +45,7 @@ def train_loop(cfg, model, dataset, logger=None):
 
     start_epoch = 0
     if cfg.resume_path:
-        start_epoch = load_checkpoint(cfg.resume_path, model, optimizer, ema)   # is ema a scheduler or it's own? Also not how this is inputted.
+        start_epoch = load_checkpoint(model, optimizer, scheduler=loss_scheduler, path=cfg.resume_path)   
 
 
     # ------------------ 2. Training Loop --------------------
@@ -55,7 +55,14 @@ def train_loop(cfg, model, dataset, logger=None):
 
         for step, batch in enumerate(pbar): 
             with debug_section("train_step"):
-                x = batch["image"].to(device)
+
+                if isinstance(batch, dict):
+                    x, y = batch["image"].to(device), batch["label"].to(device)
+                elif isinstance(batch, (tuple, list)) and len(batch) == 2:
+                    x, y = batch[0].to(device), batch[1].to(device)
+                else:
+                    raise TypeError(f"Unexpected batch types: {type(batch)}")
+
                 t = torch.randint(low=0, high=cfg.schedule.timesteps, size=(x.size(0),), device=x.device, dtype=torch.long)
                 noise = torch.randn_like(x)
                 x_noisy = diffusion.q_sample(x, t, noise=noise) 
@@ -66,6 +73,7 @@ def train_loop(cfg, model, dataset, logger=None):
 
                 debug_log(f"Step {step} | Loss: {loss.item():.4f}", name="train_loop")
 
+                assert torch.isfinite(loss), "Loss is not finite"
                 scaler.scale(loss).backward()
 
                 if cfg.training.grad_clip:
@@ -98,11 +106,44 @@ def train_loop(cfg, model, dataset, logger=None):
         
         # --------------- 4. Checkpointing -------------------
 
+        bytes_model = sum(p.numel()*p.element_size() for p in model.state_dict().values())
+        bytes_ema   = bytes_model if ema else 0
+        bytes_opt   = 2*bytes_model if optimizer else 0   # exp_avg + exp_avg_sq
+        print((bytes_model+bytes_ema+bytes_opt)/1e9, "GB expected (fp32)")
+
+        def nbytes(t): return t.numel() * t.element_size()
+
+        def bytes_model(model):
+            return sum(nbytes(p) for p in model.state_dict().values())
+
+        def bytes_opt(optimizer):
+            tot = 0
+            for st in optimizer.state.values():
+                for v in st.values():
+                    if torch.is_tensor(v): tot += nbytes(v)
+            return tot
+
+        def bytes_ema(ema_model):  # if you keep a shadow copy
+            return sum(nbytes(p) for p in ema_model.state_dict().values())
+
+
+        import os, psutil, time
+        proc = psutil.Process(os.getpid())
+
+        def rss_mb(): return proc.memory_info().rss / (1024**2)
+
+        print("RSS before:", rss_mb())
+        t0 = time.perf_counter()
+        save_checkpoint(model, optimizer=None, scheduler=loss_scheduler, epoch=epoch, step=step, path=cfg.checkpoint.out_dir)       # your function
+        print("RSS after :", rss_mb(), "elapsed:", time.perf_counter()-t0, "s")
+
+
         if (epoch+1) % cfg.training.ckpt_interval == 0:
+            raise RuntimeError
             if cfg.checkpoint.backend in {"noop", None}:
                 pass    # skip saving in tests
             else:
-                save_checkpoint(model, optimizer, scheduler=loss_scheduler, epoch=epoch, step=step, path=cfg.checkpoint.out_dir, metadata=ema)    # lol ema is metadata cause didn't build for it in tensorstore
+                save_checkpoint(model, optimizer, scheduler=loss_scheduler, epoch=epoch, step=step, path=cfg.checkpoint.out_dir)    
                 
     logger.finish()
     return logs

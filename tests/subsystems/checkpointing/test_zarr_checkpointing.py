@@ -34,6 +34,7 @@ def test_full_zarr_checkpoint_roundtrip():
     model = ToyModel()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    ema = torch.optim.swa_utils.AveragedModel(model)
 
     tmp_dir = tempfile.mkdtemp()
     checkpoint_path = Path(tmp_dir) / "zarr_test_store"
@@ -43,6 +44,7 @@ def test_full_zarr_checkpoint_roundtrip():
         model=model,
         optimizer=optimizer,
         scheduler=scheduler,
+        ema=ema,
         epoch=3,
         step=500,
         path=checkpoint_path,
@@ -50,14 +52,16 @@ def test_full_zarr_checkpoint_roundtrip():
         
     # Create new fresh model to load into
     model_reloaded = ToyModel()
-    optimizer_reloaded = torch.optim.Adam(model_reloaded.parameters(), lr=.001)
+    optimizer_reloaded = torch.optim.Adam(model_reloaded.parameters(), lr=0.001)
     scheduler_reloaded = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    ema_reloaded = ema = torch.optim.swa_utils.AveragedModel(model)
 
     # Full load
     state = zarr_wrapper.load_model(
         model=model_reloaded,
         optimizer=optimizer_reloaded,
         scheduler=scheduler_reloaded,
+        ema=ema_reloaded,
         path=checkpoint_path,
         strict=True,
     )

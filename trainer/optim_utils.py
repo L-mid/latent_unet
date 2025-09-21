@@ -12,11 +12,15 @@ from omegaconf import OmegaConf
 
 # There is an alternative EMA class!
 class EMA:
-    def __init__(self, model, decay=0.9999, device=None):
+    def __init__(self, model, decay=0.9999, cfg=None):
         self.model = model
         self.decay = decay
-        self.ema_model = self.clone_model()
+        self.ema_model = self._clone_model()
         self.ema_model.eval()
+
+        if cfg is not None:
+            self.decay = cfg.ema.decay
+
 
     def _clone_model(self):
         import copy
@@ -36,6 +40,9 @@ class EMA:
     def state_dict(self):
         return self.ema_model.state_dict()
     
+    def load_state_dict(self, sd: Dict[str, Any]) -> None:
+        self.ema_model.load_state_dict(sd)
+    
 
 # --------------------------
 # Optimizer Builder
@@ -45,7 +52,7 @@ def build_optimizer(params, cfg):
     oc = OmegaConf.to_container(cfg.optim, resolve=True)    # plain dict/list
     name    = str(oc.get("optimizer", "adamw")).lower()
     lr      = float(oc.get("lr", 1e-3))
-    betas   = tuple(oc.get("betas", (0.9, 0.999)))      # force tuple
+    betas   = tuple(oc.get("betas", (0.9, 0.999)))          # force tuple
     wd      = float(oc.get("weight_decay", 0.0))
     eps     = float(oc.get("eps", 1e-8))
 

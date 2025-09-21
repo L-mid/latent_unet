@@ -13,8 +13,8 @@ import importlib
 class DummyModel(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.linear = torch.nn.Linear(10, 5)
-        self.bn = torch.nn.BatchNorm1d(5)
+        self.conv = torch.nn.Conv2d(10, 5, 1)
+        #self.bn = torch.nn.BatchNorm1d(5)
 
 
 # -----------------------------------------------------------------------------------
@@ -37,6 +37,7 @@ def test_tensorstore_checkpoint_roundtrip():
     model = DummyModel()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+    ema = torch.optim.swa_utils.AveragedModel(model)
 
     # Generate schema
     schema = schema_utils.generate_schema(model)    
@@ -79,6 +80,8 @@ def test_tensorstore_checkpoint_roundtrip():
         schema=schema,
         strict=True
     )
+
+    print(dict(model.named_parameters())['conv.weight'].shape)
 
     # Validate model weights identical after reload
     for name, orig_tensor in model.state_dict().items():

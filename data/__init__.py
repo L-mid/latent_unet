@@ -8,14 +8,16 @@ from .transforms import build_transforms
 # === NOTES
 """
 Data should probably be under utils/ .
+Likely want a much more simple dataloader in future.
 """
 
 def build_dataset(cfg, mode="train"):
     # Build dataset object from config.
 
-    transforms = build_transforms(cfg, mode) # bad cfg!
+    transforms = build_transforms(cfg, mode)
     dataset = build_dataset_from_registry(cfg, transforms, mode) 
-    return dataset # got this out
+    return dataset 
+
 
 def build_loader(cfg, mode="train"):  
     # Build DataLoader object from config.

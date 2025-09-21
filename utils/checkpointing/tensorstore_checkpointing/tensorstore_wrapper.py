@@ -62,12 +62,17 @@ def save_checkpoint(
         if optimizer is not None:
             opt_state = optimizer.state_dict()
             opt_tensor = serialize_dict(opt_state)
-            await tensorstore_core.write_tensor(kvstore, "optimizer/state", opt_tensor)  
+            await tensorstore_core.write_tensor(kvstore, "optimizer/state", opt_tensor, chunks=chunk)  
 
         if scheduler is not None:
             sched_state = scheduler.state_dict()
             sched_tensor = serialize_dict(sched_state)
-            await tensorstore_core.write_tensor(kvstore, "scheduler/state", sched_tensor)
+            await tensorstore_core.write_tensor(kvstore, "scheduler/state", sched_tensor, chunks=chunk)
+
+
+        # consider saving ema stuff
+
+
 
         # Store metadata directly into store root (attributes)
         meta = {

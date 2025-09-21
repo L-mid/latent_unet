@@ -6,7 +6,14 @@ from typing import Dict, Any, Iterable, Optional
 import torch
 from torch import nn
 
+# === NOTES:
+"""
+Untested. 
+"""
+
+
 def unwrap_ddp(model: nn.Module) -> nn.Module:
+
     return getattr(model, "module", model)
 
 @dataclass

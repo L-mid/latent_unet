@@ -22,15 +22,17 @@ logger = logging.getLogger(__name__)
 # --------------------------------------------------------------------------------
 
 def open_store(path: str, mode: str = "a", storage_options: dict = None) -> zarr.Group:
-    # Opens (or creates) a Zarr store.
+    """
+    Opens (or creates) a Zarr store.
 
-    # Args:
-        # path (str): Filesystem path or cloud URL
-        # mode (str): "a" (default) = create or open / "w" = overwrite
-        # storage_options (dict): Passed to fsspec (for remote acess)
+    Args:
+        path (str): Filesystem path or cloud URL
+        mode (str): "a" (default) = create or open / "w" = overwrite
+        storage_options (dict): Passed to fsspec (for remote acess)
 
     # Returns:
-        # zarr.Group: root Zarr group object
+        zarr.Group: root Zarr group object
+    """
 
     logger.info(f"[ZARR] Opening store: {path} (mode={mode})")
 
@@ -48,13 +50,15 @@ def open_store(path: str, mode: str = "a", storage_options: dict = None) -> zarr
 # -----------------------------------------------------------------------------------
 
 def write_tensor(group: zarr.Group, name: str, tensor: torch.Tensor, chunks: tuple=None):
-    # Saves a tensor into Zarr group.
+    """
+    Saves a tensor into Zarr group.
 
-    # Args:
-        # group (zarr.Group): Parent group to write into
-        # name (str): Dataset name
-        # tensor (torch.Tensor): Tensor to save (moved to CPU automatically)
-        # chunks (tuple): Optional manual chunk shape
+    Args:
+        group (zarr.Group): Parent group to write into
+        name (str): Dataset name
+        tensor (torch.Tensor): Tensor to save (moved to CPU automatically)
+        chunks (tuple): Optional manual chunk shape
+    """
 
     array_data = np.atleast_1d(tensor.detach().cpu()) #weird it needs conversion but ok
 
@@ -67,7 +71,7 @@ def write_tensor(group: zarr.Group, name: str, tensor: torch.Tensor, chunks: tup
         shape=array_data.shape,
         dtype=array_data.dtype,
         chunks=("auto" if chunks is None else chunks),
-        overwrite=True,
+        overwrite=False,     # could it be that im overwriting?
     ) 
     arr[:] = array_data
 

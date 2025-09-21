@@ -90,7 +90,7 @@ def build_unet_from_config(cfg):
 
     return UNet(
         in_channels=cfg.model.in_channels,
-        base_channels=base,
+        base_channels=base,     # should be base_channels
         time_embedding=time_embedding,
         downs=downs,
         mid=mid_block,

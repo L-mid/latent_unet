@@ -32,7 +32,7 @@ class ForwardProcess(nn.Module):
         if noise is None:
             noise = torch.randn_like(x_start) 
 
-        sqrt_alpha = self.extract(self.sqrt_alphas_cumprod, t, x_start.shape) # not on cuda!
+        sqrt_alpha = self.extract(self.sqrt_alphas_cumprod, t, x_start.shape) 
         sqrt_one_minus = self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
         
         x_t = sqrt_alpha * x_start + sqrt_one_minus * noise

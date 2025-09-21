@@ -8,7 +8,24 @@ from small_train_loop import train_loop
 from model.build_unet import build_unet_from_config
 from torch.utils.data import Dataset
 
-from trainer.logger import NoopLogger, ExperimentLogger, build_logger
+# === NOTES:
+"""
+Things wanted:
+EMA. Checkpoint saving EMA.
+EMA working.
+
+Get a logger working. 
+
+Get a visualizer working. (with a class)
+
+Base channels: ENSURE 64, 128, 256. 
+
+Get a decent trusted DDIM sampler working. Or faster.
+
+
+training 'steps'.
+
+"""
 
 
 class DummyDataset(Dataset):
@@ -47,7 +64,7 @@ def small_cfg():                # an attempt to simplify the min viable cfg
             "image_size": 32,
             "in_channels": 3,
             "base_channels": 64,
-            "channel_multipliers": [1, 2, 3],
+            "channel_multipliers": [1, 2, 3],   # 64 base, 128, 256. 
         },
         "attention": {
             "kind": "vanilla",
@@ -75,7 +92,7 @@ def small_cfg():                # an attempt to simplify the min viable cfg
             "num_layers": 1,
         },
         "updown": {
-            "num_layers": 1,                    # each layer is a resblock
+            "num_layers": 1,              # each layer is a resblock
         },
         "final_head": {
             "out_channels": 3,
@@ -89,7 +106,7 @@ def small_cfg():                # an attempt to simplify the min viable cfg
         "optim": {
             "optimizer": "adamw",
             "lr": 2e-4,
-            "betas": [0.9, 0.999],
+            "betas": [0.9, 0.999],  # no weight decay
         },
         "losses": {
             "type": "mse",
@@ -110,6 +127,7 @@ def small_cfg():                # an attempt to simplify the min viable cfg
         "logging": {
             "use_wandb": False,
             "use_tb": False,
+            "output_dir": f"{tmp_dir}/saved_logs",
             "project_name": "latent_unet-v1",
             "run_name": "test_minimal"      # maybe add someway to control logging dir? (right now is automatic i think)
         },
@@ -122,7 +140,7 @@ def small_cfg():                # an attempt to simplify the min viable cfg
     
     return cfg
 
-@pytest.mark.xfail(reason="debbuging asserts tripping correct behavoir in this instance but not others.")
+
 def test_train_step():
 
     cfg = small_cfg()
@@ -134,9 +152,8 @@ def test_train_step():
     image_size = cfg.model.image_size
 
     data=DummyDataset(image_shape=(3, image_size, image_size)) 
-    logger=ExperimentLogger(cfg)
 
-    train_loop(cfg, model, data, logger)
+    train_loop(cfg, model, data)
 
 
 def test_resume_end_to_end():
@@ -154,7 +171,6 @@ def test_resume_end_to_end():
     model = build_unet_from_config(base_cfg) 
     image_size = base_cfg.model.image_size
     data=DummyDataset(image_shape=(3, image_size, image_size)) 
-    logger=ExperimentLogger(base_cfg)
 
 
     # First run: train 1 epoch and save
@@ -165,22 +181,21 @@ def test_resume_end_to_end():
     cfg.resume_path = str(ckpt_dir)
     cfg.checkpoint.out_dir = str(ckpt_dir) # does actually save
 
-    train_loop(cfg, model, data, logger)  # should write meta.json with epoch_next=1
+    train_loop(cfg, model, data)  # should write meta.json with epoch_next=1
 
 
     # Second run: resume and do another epoch
     cfg2 = small_cfg()
-    cfg2.training.num_epochs = 1  
+    cfg2.training.num_epochs = 2  
     cfg2.training.ckpt_interval = 1   
 
-    cfg2.resume_path = str(ckpt_dir) # should exist
+    cfg2.resume_path = str(ckpt_dir) 
 
     assert Path(cfg2.resume_path).exists() 
-    print(Path(cfg2.resume_path), "| This is in the test, resume path exists and is the same")
 
-    cfg2.checkpoint.out_dir = str(ckpt_dir)  # continue in same place #
+    cfg2.checkpoint.out_dir = str(ckpt_dir)  
 
-    logs = train_loop(cfg2, model, data, logger)
+    logs = train_loop(cfg2, model, data)
     assert logs["start_epoch"] == 1
 
 

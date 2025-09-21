@@ -101,28 +101,14 @@ optim:
 
 
 # ---- Losses ----
-losses:     # very oddly nested
-  - type: "mse"
+losses:     # (this used to have list configs: - to make lists.)
+    type: "mse"
     weight: 1.0
     schedule:
       type: "linear"  # or cosine, others
       start_epoch: null
       end_epoch: null    
 
-  - type: "lpips"
-    start_weight: 0.0
-    end_weight: 1.0
-    schedule:
-      type: "linear"
-      start_epoch: null
-      end_epoch: null
-
-  - type: "vgg"
-    weight: 0.5
-    schedule: 
-      type: "cosine"
-      start_step: null
-      end_step: null
 
 
 # ---- Sampling ----
@@ -153,7 +139,7 @@ sampler:
 data:
   name: my_data  # (placeholder)
   root: /data/loader
-  batch_size: 64
+  #batch_size: 64   # left because maybe for data specifically. But not used
   num_workers: 8
   shuffle: true
   
@@ -168,12 +154,14 @@ data:
 
 logging:
   use_wandb: true
+  use_tb: true
   project_name: "latent-unet-v1"
   run_name: "baseline_128ch_flash"
+  output_dir: "logs"
 
 
 # ---- Visualization ----
-visualization:
+viz:
   enabled: true
   output_dir: ./visuals
   save_every: 500   # Save every N steps

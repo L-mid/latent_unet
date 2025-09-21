@@ -33,26 +33,32 @@ class NoopLogger(BaseLogger):
     def __init__(self): pass
     def log_scalar(self, tag: str, value: float, step: int): pass
     def log_dict(self, metrics, step): pass
+    def add_scalar(self, tag, value, step): pass
+    def add_image(self, tag, img, step): pass
+    def print(self, msg, level): pass
     def finish(self): pass
 
 
-def _make_tb_writer(log_dir=None):
+def _make_tb_writer(cfg, log_dir=None):
     # Import ONLY when actually needed (used to be an env check here)
-    from torch.utils.tensorboard import SummaryWriter
-    return SummaryWriter(log_dir) if log_dir else SummaryWriter()
+    use_tb = cfg.logging.use_tb
+    if use_tb == True:
+        from torch.utils.tensorboard import SummaryWriter
+        return SummaryWriter(log_dir) if log_dir else SummaryWriter()
+    return None
 
 
 class ExperimentLogger(BaseLogger):
-    def __init__(self, cfg, output_dir="logs", use_wandb=True, debug_mode=False):
+    def __init__(self, cfg, debug_mode=False):
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.log_dir = Path(output_dir) / f"{cfg.logging.project_name}_{timestamp}"
+        self.log_dir = Path(cfg.logging.output_dir) / f"{cfg.logging.project_name}_{timestamp}"
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        log_dir=str(self.log_dir / "tensorboard")
+        log_dir=str(self.log_dir / "tensorboard")   # makes a tensorboard subdir
 
         self.debug_mode = debug_mode 
-        self.writer = _make_tb_writer(log_dir)
+        self.writer = _make_tb_writer(cfg, log_dir)    
 
-        self.use_wandb = use_wandb and WANDB_AVAILIBLE and cfg.logging.use_wandb
+        self.use_wandb = WANDB_AVAILIBLE and cfg.logging.use_wandb == True
         self.wandb_run = None
 
         self._setup_python_logger()
@@ -72,18 +78,20 @@ class ExperimentLogger(BaseLogger):
                         resume="allow"
                     )
                     print("[LOGGER] Wandb init succeeded.")
+                    return self.wandb_run
                 except Exception:   
                     print("[LOGGER] W&B init failed: no internet or blocked API. Disabling W&B.")
                     self.wandb_run = None
                     self.use_wandb = False
-                    print(f"[LOGGER] Wandb failed and returned {use_wandb} as use wandb")
 
-            # pretend real init: return object with .log()
-            if self.use_wandb == False: 
-                    class _W:
-                        def log(self, *a, **k): pass    # fake .log(). kept just in case 
-                        def log_dict(self, *a, **k): pass  
-                    return _W()
+                # pretend real init: return object with .log()
+                if self.use_wandb == False: 
+                        class _W:
+                            def log(self, *a, **k): pass    # fake .log(). kept just in case 
+                            def log_dict(self, *a, **k): pass  
+                        return _W()
+                
+            return None
         
         wandb_log = _init_wandb() 
 
@@ -102,7 +110,7 @@ class ExperimentLogger(BaseLogger):
         self.logger.addHandler(ch)
 
     def log_scalar(self, tag: str, value: float, step: int):
-        self.writer.add_scalar(tag, value, step) # here
+        self.writer.add_scalar(tag, value, step) 
         if self.use_wandb:
             wandb.log({tag: value}, step=step)
 
@@ -139,11 +147,9 @@ class ExperimentLogger(BaseLogger):
 def build_logger(cfg) -> BaseLogger:
     use_tb   = getattr(cfg.logging, "use_tb", False)
     use_wandb= getattr(cfg.logging, "use_wandb", False)
-    if not (use_tb or use_wandb):
+    if not use_tb and use_wandb:
         return NoopLogger()
     return ExperimentLogger(
         cfg=cfg,
-        output_dir= cfg.logging.output_dir,
-        use_wandb = use_wandb,
     )
 # no tensorboard check

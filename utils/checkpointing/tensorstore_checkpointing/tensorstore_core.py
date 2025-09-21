@@ -53,15 +53,15 @@ async def write_tensor(
     kvstore: Union[str, Dict],                          # base store (dir path or kvstore dict)
     array_path: str,                                    # subpath inside store, e.g. "model/linear.weight"
     tensor: Union[torch.Tensor, np.ndarray],
-    chunks: Optional[Tuple[int, ...]] = None,
+    chunks: Optional[Tuple[int, ...]],                  # legacy: _array_chunks(shape)  (made chunking optionally local to here)
     codecs: Optional[list] = None, 
     delete_existing: bool = True,
 ):
     arr = _as_numpy(tensor)
     shape = tuple(int(s) for s in arr.shape)
     dtype = arr.dtype.name
-    chunk_shape = list(chunks or _array_chunks(shape))
-    codecs = codecs or [{"name": "zstd", "configuration": {"level": 5}}]
+    chunk_shape = list(chunks)                  
+    codecs = codecs or [{"name": "bytes"}]      # legacy option (slow on CPU): [{"name": "zstd", "configuration": {"level": 5}}]
 
     # normalize kvstore argument
     if isinstance(kvstore, str):

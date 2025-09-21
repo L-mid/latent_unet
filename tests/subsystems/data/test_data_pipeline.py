@@ -10,6 +10,7 @@ import torch
 from PIL import Image
 import importlib
 from data import build_loader
+from data import basic_dataset, caption_dataset 
 from omegaconf import OmegaConf
 
 

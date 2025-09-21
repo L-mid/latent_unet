@@ -72,12 +72,12 @@ So: 1x stretch, 2x training/viz, 4x research/math, 7x repo
 
 Days (started on a wednesday): 
 
-1 - research/math (4 hrs)   - repo (4 hrs)      (day off)
+1 - research/math (4 hrs)   - repo (4 hrs) 🔹    (day off)
 2 - research/math (4 hrs)   - repo (4 hrs) 
 3 - training/viz (4 hrs)    - repo (4 hrs)
 4 - research/math (4 hrs)   - repo (4 hrs)
 5 - stretch (4 hrs)          - repo (4 hrs)
-6 - research/math (4 hrs)   - repo (4 hrs)🔹
+6 - research/math (4 hrs)   - repo (4 hrs)
 7 - training/viz (4 hrs)    - repo (4 hrs)
 
 """

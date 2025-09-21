@@ -2,16 +2,15 @@
 import torch
 from torch.utils.data import DataLoader
 from pathlib import Path
-import re
-from utils.debug import debug_log, debug_section  
+from utils.debug import debug_log, debug_section    # tested, ok
 
-from utils.checkpointing.zarr_checkpointing.zarr_wrapper import load_model, save_model
+from utils.checkpointing.zarr_checkpointing.zarr_wrapper import load_model, save_model      # ok
 from utils.visualizer import visualize_everything   # I do not trust this
-from trainer.logger import ExperimentLogger     # learn how to use
-from trainer.optim_utils import build_optimizer     # no scheduler
-from trainer.optim_utils import EMA   
-from trainer.losses import get_loss_fn  # mse
-from diffusion.forward_process import ForwardProcess
+from trainer.logger import build_logger     # ok
+from trainer.optim_utils import build_optimizer     # ok (might want to reimport as simpler)
+from trainer.optim_utils import EMA     # Not trusted
+from trainer.losses import get_loss_fn  # ok (might want to reimport as simpler)
+from diffusion.forward_process import ForwardProcess    # ok
 from tqdm import tqdm   # bars?
 
 # === NOTES:
@@ -19,13 +18,13 @@ from tqdm import tqdm   # bars?
 Designed small.
 """
 
-def train_loop(cfg, model, dataset, logger=None):
+def train_loop(cfg, model, dataset):
 
     device = torch.device(cfg.device)
     model.to(device)
     diffusion = ForwardProcess(cfg).to(device)   
     
-    logger = logger  # ExperimentLogger(cfg) or NoopLogger() (others too)
+    logger = build_logger(cfg) 
 
     dataloader = DataLoader(dataset, batch_size=cfg.training.batch_size)
     optimizer = build_optimizer(model.parameters(), cfg)
@@ -38,32 +37,19 @@ def train_loop(cfg, model, dataset, logger=None):
 
         def _find_latest_checkpoint(dirpath: str | Path): 
             p = Path(dirpath)
-            print(p, "| this is p (finder)") 
-            assert p.exists()
             if not p.exists():  
-                return None # OHH
-            # ok. 
-            # the fn is passing none itself because of a failure. HAHAH
-            entries = list(p.iterdir())
-            print(f"[finder] entries={len(entries)} -> {[e.name for e in entries]}")
-
-            # Example fallback matcher; treak to your naming scheme
-            canadiates = []
-            for child in entries:
-                m = re.search(r'(\d+)', child.name)     # e.g., epoch_0001, ckpt-1, etc.
-                if m:
-                    canadiates.append((int(m.group(1)), child))
-
-            if not canadiates:
-                print("[finder] REASON: no canadates macthed pattern (wrong naming schema between saver and finder)")
-                raise RuntimeError
-                # possible answers:
-                # somewhere i'm deleating next runs files. (most likely)
+                return None 
             
-            canadiates.sort()
-            found = canadiates[-1][1]
-            print(f"[finder] FOUND: {found}")
-            return found
+            def _is_zarr_root(p: Path) -> bool:
+                # v3 has zarr.json
+                return (p / "zarr.json").exists()
+            
+            # Case A: the path itself is a Zarr checkpoint root
+            if _is_zarr_root(p):
+                print("[Finder] using dir itself (zarr root)")
+                return p
+            
+            return None
 
             
         resume_root = _find_latest_checkpoint(cfg.resume_path) 
@@ -72,7 +58,7 @@ def train_loop(cfg, model, dataset, logger=None):
             start_epoch = 0
             print(start_epoch, "| this is what start_epoch is. [SMALL TRAIN]. No ckpt found.") 
         else:
-            state = load_model(model, optimizer, scheduler=None, path=cfg.resume_path)  
+            state = load_model(model, optimizer, scheduler=None, path=resume_root)  
             start_epoch = state["epoch_next"]   
             print(start_epoch, "| this is what start_epoch is. [SMALL TRAIN]. ckpt found.")  
 
@@ -80,11 +66,11 @@ def train_loop(cfg, model, dataset, logger=None):
             """{"epoch_completed": N, "epoch_next": N+1, "global_step": S, ...}"""
             # make sure the saver closes checkpointer.
     
-    else: print("NO RESUME PATH GIVEN in cfg. Starting from sctrach.")
+    else: logger.print("No resume path given in cfg. Starting from sctrach.", level="info")
  
 
     # --------------- Training Loop ----------------------
-    for epoch in range(start_epoch, cfg.training.num_epochs):
+    for epoch in range(start_epoch, cfg.training.num_epochs): 
         model.train()
         pbar = tqdm(dataloader, desc=f"Epoch {epoch}")      # possible datetime warning
 
@@ -126,16 +112,13 @@ def train_loop(cfg, model, dataset, logger=None):
         # -------------- Checkpointing -------------------
 
         if (epoch+1) % cfg.training.ckpt_interval == 0:
-            print("checkpoint saving actually works")
             if cfg.checkpoint.backend in {"noop", None}:        # this won't raise if catagory not present
                 pass    # skip saving in tests
             else:
                 save_model(
-                    model, optimizer, epoch=epoch, scheduler=None, step=step, path=cfg.checkpoint.out_dir, 
-                           extra={"epoch_completed": epoch, "epoch_next": epoch+1, "global_step": step}
-                           )       # conisder adding EMA, mabye metadata.
+                    model, optimizer, epoch=epoch, scheduler=None, step=step, path=cfg.checkpoint.out_dir)       # conisder adding EMA.
             assert Path(cfg.checkpoint.out_dir).exists()
-            print(Path(cfg.checkpoint.out_dir), "| This is what's saved.")
+            print("checkpoint saved and exists.")
 
     
     logger.finish()

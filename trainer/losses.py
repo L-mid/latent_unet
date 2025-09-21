@@ -189,7 +189,8 @@ def cosine_decay(t, T=1000): # might need to add alpha_t
 # CONFIG-COMPATIBLE LOSS HANDLER
 # ------------------------------------
 
-def get_loss_fn(cfg):   
+def get_loss_fn(cfg):  
+
     loss_type = cfg.losses.type.lower()
     
     schedule_cfg = OmegaConf.select(cfg, "losses.schedule")     # safe path acess
@@ -222,7 +223,7 @@ def visualize_loss(loss_tensor, title="Loss Heatmap"):
         for i in range(min(4, heatmap.shape[0])):       # Show up to 4 samples
             plt.imshow(heatmap[i], cmap='viridis')
             plt.title(f"{title} [ sample {i}]")
-            plt.colourbar()
+            plt.colorbar()
             plt.show
 
 

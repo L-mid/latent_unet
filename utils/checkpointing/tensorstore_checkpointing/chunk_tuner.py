@@ -30,7 +30,7 @@ def get_chunk_config(
         elif strategy == "fixed":
             chunks[name] = fixed_chunk(shape, target_elements)
         elif strategy == "auto":
-            chunks[name] = auto_chunk(shape, target_elements)
+            chunks[name] = real_auto_chunk(shape, target_elements)
         elif strategy == "none":
             chunks[name] = None
         else:
@@ -112,14 +112,16 @@ def real_auto_chunk(
     target_elems = max(1, target_chunk_bytes // max(1, dtype_itemsize))
     n = len(shape)
     chunk = [1] * n
+    locked = [False]*n
 
     # Pre-take tiny axes whole
     axes = (range(n - 1, -1, -1) if order == "C" else range(n))
     for i in axes:
         if shape[i] <= small_axis_threshold:
             chunk[i] = shape[i]
+            locked[i] = True
 
-    # Grow greedily toward target_elems, preferring fastest-varying axis
+    # Grow greedily toward target_elems, preferring fastest-varying axis (don't touch locked or full dims)
     def prod(lst):
         p = 1
         for v in lst: p *= v
@@ -128,7 +130,7 @@ def real_auto_chunk(
     while prod(chunk) < target_elems:
         grew = False
         for i in axes:
-            if chunk[i] >= shape[i]:
+            if locked[i] or chunk[i] >= shape[i]:
                 continue
             new_size = min(shape[i], max(chunk[i] * 2, chunk[i] + 1))
             # try doubling; if already big, at least +1
@@ -141,11 +143,15 @@ def real_auto_chunk(
         if not grew:
             break
 
-    # snap to nice multiples without exceeding dim
+    # snap to nice multiples without exceeding dim. Never shrink
     for i in range(n):
+        if locked[i]:
+            continue
+        base = chunk[i]
         for m in snap_multiples:
-            snapped = (chunk[i] // m) * m
-            if 1 <= snapped <= shape[i]:
+            # ciel to multipule, capped by dim size
+            snapped = min(shape[i], ((base + m - 1) // m) * m)
+            if snapped >= base:
                 chunk[i] = snapped
                 break
         chunk[i] = min(max(chunk[i], 1), shape[i])

@@ -2,6 +2,7 @@
 import os
 import logging
 from . import zarr_core
+from typing import Optional, Any, Union
 import torch
 
 # === NOTES
@@ -24,6 +25,7 @@ def save_model(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
     scheduler: torch.optim.lr_scheduler._LRScheduler,
+    ema: Union[torch.optim.swa_utils.AveragedModel, Any, None],            # don't have a good name. But put the model in
     epoch: int,
     step: int,
     path: str,
@@ -53,12 +55,24 @@ def save_model(
             sub_group = group.require_group("scheduler")
             zarr_core.write_tensor(sub_group, key, serialize_dict(value)) 
 
-    # consider: saving and loading ema
+    # Save ema state
+    if ema is not None:
+        ema_state = ema.state_dict()
+        for key, value in ema_state.items():
+            sub_group = group.require_group("ema") 
+            zarr_core.write_tensor(sub_group, key, serialize_dict(value))
 
+
+    group = zarr_core.open_store(path, mode="a")
+    
     # Save metadata
-    group.attrs["epoch"] = epoch 
-    group.attrs["step"] = step
-    group.attrs["extra"] = extra or {}  # {"epoch_completed": N, "epoch_next": N+1, "global_step": S, ...}
+    group.attrs["epoch"]            = int(epoch) 
+    group.attrs["step"]             = int(step)
+    group.attrs["epoch_completed"]  = int(epoch)
+    group.attrs["epoch_next"]       = int(epoch + 1)    
+    group.attrs["global_step"]      = int(step)
+    group.attrs["extra"] = extra or {}  
+
 
 
 # ------------------------------------------------------------------------------
@@ -69,6 +83,7 @@ def load_model(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
     scheduler: torch.optim.lr_scheduler._LRScheduler,
+    ema: Union[Any, None],
     path: str,
     strict: bool = True,
 ) -> dict:
@@ -126,21 +141,40 @@ def load_model(
         scheduler.load_state_dict(sched_state)
         logger.info("[ZARR] Scheduler state loaded")
 
-    # consider: loading ema state
+
+    # Load ema state
+    if ema is not None and "ema" in group.array_keys():
+        ema_state = {}
+        ema_group = group["ema"]
+
+        for key in ema_group.array_keys():
+            data = sched_group[key][...]
+            if data.shape == ():
+                data = data.item()
+            ema_group[key] = data
+
+        # Read attrs (if you saved scalars/metadata as attrs)
+        for k, v in ema_group.attrs.items():
+            ema_group[k] = v
+            
+        ema.load_state_dict(ema_state)
+        logger.info("[ZARR] Schedule state loaded")
+
 
 
     # Read metadata
-    epoch = group.attrs.get("epoch", 0)
-    step = group.attrs.get("step", 0)
-    extra = group.attrs.get("extra", {})    # {"epoch_completed": N, "epoch_next": N+1, "global_step": S, ...}
 
-    logger.info(f"[ZARR] Metadata loaded: epoch={epoch}, step={step}")
-
-    return {
-       "epoch": epoch,
-       "step": step,
-       "extra": extra 
-    }
+    # dict(root.attrs) gives you everything:
+    state = dict(group.attrs)
+    # (optional) cast numpy scalars to Python ints
+    for k, v in list(state.items()):
+        try:
+            import numpy as np
+            if isinstance(v, np.generic):
+                state[k] = np.asarray(v).item()
+        except Exception:
+            pass
+    return state
             
 
 # ------------------------------------------------------------------------------------
