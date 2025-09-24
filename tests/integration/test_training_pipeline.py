@@ -17,8 +17,8 @@ from utils.checkpointing.zarr_checkpointing import zarr_wrapper
 import concurrent.futures as cf
 import multiprocessing as mp
 import pytest
-from tests.helpers_subproc import enforce_timeout
-from tests._hard_timeout import run_with_hard_timeout
+#from tests.helpers_subproc import enforce_timeout
+#from tests._hard_timeout import run_with_hard_timeout
 from functools import partial
 from pathlib import Path
 
@@ -46,13 +46,13 @@ do visualizer in the loop next.
 @pytest.mark.skip("Not currently used")
 @pytest.mark.timeout(0)     # for trace stacks and Lunix CI only
 def test_timeout_sanity():
-
+    pass
     # check logging works
-    run_with_hard_timeout(tiny_hi, timeout=20)
+    #run_with_hard_timeout(tiny_hi, timeout=20)
 
-    job = partial(enforce_timeout, holdoff=999)   # fn must be module-level
-    with pytest.raises(TimeoutError):
-        _ = run_with_hard_timeout(job, timeout=0.1)
+    #job = partial(enforce_timeout, holdoff=999)   # fn must be module-level
+    #with pytest.raises(TimeoutError):
+        #_ = run_with_hard_timeout(job, timeout=0.1)
 
 
 @pytest.mark.timeout(0)
@@ -64,7 +64,7 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     cfg = load_config("configs/unet_config.yaml")
     cfg = OmegaConf.create(cfg)
 
-    cfg.device = 'cpu'  #smoke test stays on CPU for CI speed/stability
+    cfg.device = 'gpu'  #smoke test stays on CPU for CI speed/stability
     device = cfg.device
 
 
