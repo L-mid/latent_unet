@@ -116,7 +116,7 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
 
     cfg.checkpoint.out_dir = "ckpts"     # "C:/_ckpts" for off onedrive 
     cfg.viz.output_dir = "viz"
-    cfg.logging.output_dir = "logs"
+    cfg.logging.output_dir = "logs_2"
 
 
     cfg.resume_path = cfg.checkpoint.out_dir  # loops
