@@ -1,6 +1,6 @@
 
 import pytest
-from utils.checkpointing.checkpoint_io import write_bytes_atomic, resume_recover, CrashBetweenTmpAndRename
+from utils.checkpointing.fail_checkpoint_io import write_bytes_atomic, resume_recover, CrashBetweenTmpAndRename
 
 @pytest.mark.failure_injection
 def test_resume_completes_tmp_file(fp, tmp_path):

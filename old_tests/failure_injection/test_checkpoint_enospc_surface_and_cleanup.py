@@ -2,7 +2,7 @@
 import errno, os
 from pathlib import Path
 import pytest
-from utils.checkpointing.checkpoint_io import write_bytes_atomic
+from utils.checkpointing.fail_checkpoint_io import write_bytes_atomic
 
 @pytest.mark.failure_injection
 def test_checkpoint_enospc_surfaces_and_tmp_clean(fp, tmp_path):

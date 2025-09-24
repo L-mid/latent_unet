@@ -1,7 +1,7 @@
 
 import os, tempfile
 import pytest 
-from utils.checkpointing.checkpoint_io import write_bytes_atomic
+from utils.checkpointing.fail_checkpoint_io import write_bytes_atomic
 
 # === NOTES:
 """
