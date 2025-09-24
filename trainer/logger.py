@@ -12,6 +12,9 @@ from utils.failure_injection_utils.failpoints import failpoints
 DEPENDENT on tensorboard installation (if colab doesn't have keep in mind)
 
 colab has spam issues with tensorboard, harmless but noting
+
+pytest -o log_cli=true --log-cli-level=INFO <-- this shows logs from the 'logger' (used a lot). 
+
 """
 
 try: 
@@ -37,6 +40,7 @@ class NoopLogger(BaseLogger):
     def add_image(self, tag, img, step): pass
     def print(self, msg, level): pass
     def finish(self): pass
+    def close(self): pass
 
 
 def _make_tb_writer(cfg, log_dir=None):
@@ -45,7 +49,7 @@ def _make_tb_writer(cfg, log_dir=None):
     if use_tb == True:
         from torch.utils.tensorboard import SummaryWriter
         return SummaryWriter(log_dir) if log_dir else SummaryWriter()
-    return None
+    return NoopLogger()
 
 
 class ExperimentLogger(BaseLogger):
@@ -56,7 +60,7 @@ class ExperimentLogger(BaseLogger):
         log_dir=str(self.log_dir / "tensorboard")   # makes a tensorboard subdir
 
         self.debug_mode = debug_mode 
-        self.writer = _make_tb_writer(cfg, log_dir)    
+        self.writer = _make_tb_writer(cfg, log_dir) # non when inactive
 
         self.use_wandb = WANDB_AVAILIBLE and cfg.logging.use_wandb == True
         self.wandb_run = None
@@ -77,20 +81,13 @@ class ExperimentLogger(BaseLogger):
                         dir=str(self.log_dir / "wandb"),
                         resume="allow"
                     )
-                    print("[LOGGER] Wandb init succeeded.")
+                    if self.wandb_run: print("[LOGGER] Wandb init succeeded.")
                     return self.wandb_run
                 except Exception:   
                     print("[LOGGER] W&B init failed: no internet or blocked API. Disabling W&B.")
                     self.wandb_run = None
                     self.use_wandb = False
 
-                # pretend real init: return object with .log()
-                if self.use_wandb == False: 
-                        class _W:
-                            def log(self, *a, **k): pass    # fake .log(). kept just in case 
-                            def log_dict(self, *a, **k): pass  
-                        return _W()
-                
             return None
         
         wandb_log = _init_wandb() 
@@ -115,9 +112,12 @@ class ExperimentLogger(BaseLogger):
             wandb.log({tag: value}, step=step)
 
     def log_image(self, tag: str, image, step: int):
-        self.writer.add_image(tag, image, step)     
+        chw = _prep_chw(image)             # CHW float[0,1], CPU
+        self.writer.add_image(tag, chw, step)   # TensorBoard wants CHW
         if self.use_wandb:
-            wandb.log({tag: [wandb.Image(image, caption=tag)]}, step=step)
+            wb_img = _to_wandb_image(chw)  # W&B wants HWC-ish
+            wandb.log({tag: wb_img}, step=step)
+            
 
     def log_dict(self, metrics: Mapping[str, float], step: int):
         for k, v in metrics.items():
@@ -152,4 +152,30 @@ def build_logger(cfg) -> BaseLogger:
     return ExperimentLogger(
         cfg=cfg,
     )
-# no tensorboard check
+
+
+
+
+
+# ----------------- utils
+import torch
+from torchvision.utils import make_grid
+
+def _prep_chw(img) -> torch.Tensor:
+    """Return CHW float32 on CPU in [0,1]. Accepts CHW/NCHW/HWC/uint8/[-1,1]."""
+    t = img.detach().cpu()
+    if t.dim() == 4:  # NCHW -> grid
+        t = make_grid(t)
+    if t.dim() == 3 and t.shape[0] not in (1, 3):  # HWC -> CHW
+        t = t.permute(2, 0, 1).contiguous()
+    t = t.float()
+    if t.max() > 1.0 or t.min() < 0.0:  # e.g. [-1,1]
+        t = (t.clamp(-1, 1) + 1) / 2
+    if t.shape[0] == 1:  # grayscale -> RGB for W&B
+        t = t.repeat(3, 1, 1)
+    return t.clamp(0, 1)
+
+def _to_wandb_image(chw: torch.Tensor):
+    """Convert CHW [0,1] float -> HWC uint8 for W&B."""
+    hwc = (chw.mul(255).round().byte().permute(1, 2, 0).numpy())
+    return wandb.Image(hwc)

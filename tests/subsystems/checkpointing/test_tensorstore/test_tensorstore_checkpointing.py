@@ -52,6 +52,8 @@ def test_tensorstore_checkpoint_roundtrip():
     # Setup temporary test directory
     tmp_dir = tempfile.mkdtemp()
     checkpoint_path = os.path.join(tmp_dir, "ts_checkpoint")
+    
+    checkpoint_path = r"C:/_ckpts/training_baseline_flash"
 
     # Save checkpoint
     tensorstore_wrapper.save_checkpoint(
@@ -81,7 +83,6 @@ def test_tensorstore_checkpoint_roundtrip():
         strict=True
     )
 
-    print(dict(model.named_parameters())['conv.weight'].shape)
 
     # Validate model weights identical after reload
     for name, orig_tensor in model.state_dict().items():

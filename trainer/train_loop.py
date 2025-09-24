@@ -1,16 +1,19 @@
 
-import os, torch, time
+import os, torch
+from pathlib import Path
 from torch.utils.data import DataLoader
 from torch.amp import GradScaler, autocast
 from utils.debug import debug_log, debug_section 
 
-from utils.checkpointing.tensorstore_checkpointing import save_checkpoint, load_checkpoint
-from utils.visualizer import visualize_everything
+from utils.checkpointing.zarr_checkpointing.zarr_wrapper import save_model, load_model
+from utils.visualizer_refactor import build_visualizer
 from trainer.logger import build_logger
 from trainer.optim_utils import build_optimizer, build_scheduler
-from trainer.ema_utils import EMA
+from trainer.optim_utils import EMA
 from trainer.losses import get_loss_fn
 from diffusion.forward_process import ForwardProcess
+from diffusion.ddim import ddim_sample, sample_ddim_grid
+from utils.checkpointing.ckpt_io import resolve_latest_checkpoint
 from tqdm import tqdm
 
 # === NOTES:
@@ -20,14 +23,25 @@ All these calls (like build_optimizer, EMA) are weird, not the same, and mabye s
 
 Weird noop logger mechanics.
 
+heres something:
 
-There were bad warnings before. Something between 'build logger' and Experiment logger is now rid of them. 
+# train_loop.py
+ckpt_root = Path(cfg.checkpoint.out_dir)
+ckpt_dir  = ckpt_root / f"epoch_{epoch:06d}_step_{step:09d}"
+group = zarr_core.open_store(ckpt_dir, mode="w")  # no rmtree on root
+
+This gives versioned ckpts consider it
+
+
+theres more too, including atomacy (great!)
 
 """
 
 
 def train_loop(cfg, model, dataset):
-    # --------- 1. Setup -----------
+    
+
+    # --------- Setup -----------
     device = torch.device(cfg.device)
     model.to(device)
 
@@ -43,16 +57,34 @@ def train_loop(cfg, model, dataset):
 
     scaler = torch.amp.GradScaler(enabled=cfg.training.amp)
 
+    viz = build_visualizer(cfg.viz)
+
+
+    # --- Resolve resume path ---
+    resume_dir = resolve_latest_checkpoint(cfg.resume_path)     # resume_path = output_dir, unless not loading from outputs
+
     start_epoch = 0
-    if cfg.resume_path:
-        start_epoch = load_checkpoint(model, optimizer, scheduler=loss_scheduler, path=cfg.resume_path)   
+    global_step = 0
+    if resume_dir:
+        state = load_model(model, optimizer, loss_scheduler, ema, path=resume_dir)
+        # Expect your loader to return attrs like epoch_next/global_step; if not, read group.attrs
+        start_epoch = int(state.get("epoch_next"))
+        global_step = int(state.get("global_step", 0))
+        print(f"[Resume ckpt] {resume_dir} -> start_epoch={start_epoch}, step={global_step}")      
+    else:
+        print("[Resume ckpt] No checkpoint found. Starting fresh.")
+    
 
+    # ------------------ Training Loop --------------------
+    if start_epoch >= cfg.training.num_epochs:
+        print(f"[TRAINING] Training complete/No-Op: start_epoch: {start_epoch} >= num_epochs: {cfg.training.num_epochs}.")
+        logs = {"loss": None}
+        return logs 
 
-    # ------------------ 2. Training Loop --------------------
     for epoch in range(start_epoch, cfg.training.num_epochs):
         model.train()
         pbar = tqdm(dataloader, desc=f"Epoch {epoch}")  # datetime warning?
-
+    
         for step, batch in enumerate(pbar): 
             with debug_section("train_step"):
 
@@ -75,77 +107,65 @@ def train_loop(cfg, model, dataset):
 
                 assert torch.isfinite(loss), "Loss is not finite"
                 scaler.scale(loss).backward()
+                
+
 
                 if cfg.training.grad_clip:
                     scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.training.grad_clip)
+                
+
+                # grad logging:
+                params = list(model.named_parameters()) 
+                if (epoch + 1) % cfg.training.viz_interval == 0:              
+                    viz.log("grad_flow", step=epoch, named_parameters=params)
 
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad()
 
-                if ema: ema.update(model)
+                if ema: ema.update()        # does not take model
 
                 # Log to console and optionally W&B/tensorboard
                 loss_value = float(loss.item())
                 logs = {"loss": loss_value}
 
                 if logger: logger.log_scalar("loss", loss.item(), step=epoch * len(dataloader) + step)
+                
+                global_step += 1
+
+            if loss_scheduler: loss_scheduler.step()  
+
             
-            if loss_scheduler: loss_scheduler.step()  # loss thing? can it step?
 
 
-        # ------------ 3. Evaluation & Logging ---------------
-        if (epoch + 1) % cfg.training.vis_interval == 0:
-            model.eval()
-            vis_imgs = visualize_everything(model, cfg=cfg) # disabled, not init properly.
-            if logger: 
-                if vis_imgs == None: pass
-                else: logger.log_image("samples", vis_imgs, step=epoch)
+        # ------------ Evaluation & Logging ---------------
+        if (epoch + 1) % cfg.training.viz_interval == 0:
+            model.eval()      
+            vis_img = sample_ddim_grid(cfg, model=model, shape=x_noisy.shape, step=epoch) 
+            vis_misc = viz.run_all(step=epoch, model=model)     
+            if logger:  
+                if vis_img is not None:     # might swallow if sampler doesn't return tensor
+                    try:
+                        logger.log_image("image_samples", vis_img, step=epoch)
+                    except Exception as e:
+                        print(f"[viz] image_samples skipped: {e}")  
+
+                if vis_misc is not None:
+                    try:
+                        logger.log_image("misc_viz", vis_misc, step=epoch)
+                    except Exception as e:
+                        print(f"[viz] misc_viz skipped: {e}")
 
         
-        # --------------- 4. Checkpointing -------------------
-
-        bytes_model = sum(p.numel()*p.element_size() for p in model.state_dict().values())
-        bytes_ema   = bytes_model if ema else 0
-        bytes_opt   = 2*bytes_model if optimizer else 0   # exp_avg + exp_avg_sq
-        print((bytes_model+bytes_ema+bytes_opt)/1e9, "GB expected (fp32)")
-
-        def nbytes(t): return t.numel() * t.element_size()
-
-        def bytes_model(model):
-            return sum(nbytes(p) for p in model.state_dict().values())
-
-        def bytes_opt(optimizer):
-            tot = 0
-            for st in optimizer.state.values():
-                for v in st.values():
-                    if torch.is_tensor(v): tot += nbytes(v)
-            return tot
-
-        def bytes_ema(ema_model):  # if you keep a shadow copy
-            return sum(nbytes(p) for p in ema_model.state_dict().values())
-
-
-        import os, psutil, time
-        proc = psutil.Process(os.getpid())
-
-        def rss_mb(): return proc.memory_info().rss / (1024**2)
-
-        print("RSS before:", rss_mb())
-        t0 = time.perf_counter()
-        save_checkpoint(model, optimizer=None, scheduler=loss_scheduler, epoch=epoch, step=step, path=cfg.checkpoint.out_dir)       # your function
-        print("RSS after :", rss_mb(), "elapsed:", time.perf_counter()-t0, "s")
-
-
+        # ---------------  Checkpointing -------------------
         if (epoch+1) % cfg.training.ckpt_interval == 0:
-            raise RuntimeError
             if cfg.checkpoint.backend in {"noop", None}:
                 pass    # skip saving in tests
             else:
-                save_checkpoint(model, optimizer, scheduler=loss_scheduler, epoch=epoch, step=step, path=cfg.checkpoint.out_dir)    
-                
+                save_model(model, optimizer, loss_scheduler, ema, epoch=epoch, step=global_step, path=cfg.checkpoint.out_dir)    
     logger.finish()
+
     return logs
 
 

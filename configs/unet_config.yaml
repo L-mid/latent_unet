@@ -16,7 +16,7 @@ training:
   amp: true   
   gradient_checkpointing: false
   num_workers: 8
-  vis_interval: 10    # every N epochs
+  viz_interval: 10    # every N epochs
   ckpt_interval: 25   # every N epochs
 
 checkpoint: 
@@ -118,8 +118,7 @@ sampler:
 
   # Shared sampling config
   num_steps: 50
-  guidance_scale: 3.5
-  classifier_free: true
+  guidance_scale: null
 
   # DDPM-specific (ancestral sampling)
   eta: 1.0
@@ -163,17 +162,9 @@ logging:
 # ---- Visualization ----
 viz:
   enabled: true
-  output_dir: ./visuals
-  save_every: 500   # Save every N steps
-  max_images: 16     # N of images per vis
-  steps_to_plot: [0, 50, 100, 250, 500, 750, 999]
-
-  use:
-  # Vis types:
-    latents: true
-    param_norms: true
-    grad_flow: true  # true does nothing right now
-    # etc etc etc... #.use?
+  output_dir: "./visuals"
+  nrow: 4
+  use: ["param_norms"]
 
 
 # --- Debugging ---

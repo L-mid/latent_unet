@@ -30,7 +30,7 @@ class FakeNoisePredictor(nn.Module):
 
         if self.scale_t_embedding:
             # Inject simple dependency on timestep for testing samplers
-            scale = (t.float().unsqueeze(-1).unqueeze(-1).unsqueeze(-1) / 1000.0)
+            scale = (t.float().unsqueeze(-1).unsqueeze(-1).unsqueeze(-1) / 1000.0)
             out += scale
 
         return out

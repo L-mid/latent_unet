@@ -100,6 +100,7 @@ def create_large_mock_config():
 def accurate_cfg():     # at least at one point was
 
     cfg = {  
+        "device": "cpu",
         "resume_path": None,  
         "model": {
             "image_size": 4,
@@ -182,9 +183,15 @@ def accurate_cfg():     # at least at one point was
             "project_name": "latent_unet-v1",
             "run_name": "test_minimal"
         },
-        "visualization": {
+        "sampler": {
+            "ddim_eta" : 0.0,
+            "num_steps": 25,
+        },
+        "viz": {
             "enabled": False,
-            "output_dir": None,    
+            "output_dir": None, 
+            "nrow": 4,
+            "use": []   
         },
     }
 

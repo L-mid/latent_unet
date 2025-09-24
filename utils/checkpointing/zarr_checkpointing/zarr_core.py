@@ -34,12 +34,10 @@ def open_store(path: str, mode: str = "a", storage_options: dict = None) -> zarr
         zarr.Group: root Zarr group object
     """
 
-    logger.info(f"[ZARR] Opening store: {path} (mode={mode})")
-
     if mode == "w" and os.path.exists(path):
-        logger.warning(f"[ZARR] Overwriting existing store at: {path}")
+        #logger.warning(f"[ZARR] Overwriting existing store at: {path}")
         import shutil
-        shutil.rmtree(path)
+        #shutil.rmtree(path)    # deletes prev path?
 
     root = zarr.open_group(store=str(path), mode=mode) #
     return root
@@ -75,7 +73,7 @@ def write_tensor(group: zarr.Group, name: str, tensor: torch.Tensor, chunks: tup
     ) 
     arr[:] = array_data
 
-    logger.info(f"[ZARR] Wrote tensor '{name}' with shape {tensor.shape}")
+    #logger.info(f"[ZARR] Wrote tensor '{name}' with shape {tensor.shape}")
     return arr 
 
 # ------------------------------------------------------------------------------------
@@ -101,7 +99,7 @@ def read_tensor(group: zarr.Group, name: str, device: torch.device = "cpu") -> t
     np_data = group[name][:]
     tensor = torch.tensor(np_data, device=device)
     
-    logger.info(f"[ZARR] Read tensor '{name}' with shape {tensor.shape}")
+    #logger.info(f"[ZARR] Read tensor '{name}' with shape {tensor.shape}")
     return tensor
 
 

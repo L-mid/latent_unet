@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 """
 Serialization of dicts is a bit odd.
 
-Tensorstore async problems in trainloop. (asyncio.windows_events still polling inside save_checkpoint). Haven't tested cause.
-
+Learned the hard way that tensorstore is acutally (nothing obivously wrong), just really, really slow on CPU.
 
 """
 
@@ -25,6 +24,8 @@ Tensorstore async problems in trainloop. (asyncio.windows_events still polling i
 # ------------------------------------------------------------------------------------
 # High-level save
 # ------------------------------------------------------------------------------------
+
+logger.setLevel(logging.INFO)     # keep logger.propagate = True (default)
 
 def save_checkpoint(
         model: torch.nn.Module,
@@ -44,7 +45,6 @@ def save_checkpoint(
     async def async_save():
         kvstore = registry.get_kvstore(path, driver=driver, storage_options=storage_options)
 
-
         state_dict = model.state_dict()
         shapes = {k: tuple(v.shape) for k, v in state_dict.items()}
         chunks = chunk_tuner.get_chunk_config(shapes, strategy=chunk_strategy)
@@ -54,21 +54,20 @@ def save_checkpoint(
             
             chunk = decide_chunk(name, tensor, chunks)
 
-            await tensorstore_core.write_tensor(
-                kvstore, f"model/{name}", tensor, chunks=chunk
-            ) #create schema first
+            await tensorstore_core.write_tensor(kvstore, f"model/{name}", tensor, chunks=chunk)
 
         # Optimizer state
         if optimizer is not None:
             opt_state = optimizer.state_dict()
             opt_tensor = serialize_dict(opt_state)
-            await tensorstore_core.write_tensor(kvstore, "optimizer/state", opt_tensor, chunks=chunk)  
+
+            await tensorstore_core.write_tensor(kvstore, "optimizer/state", opt_tensor)
 
         if scheduler is not None:
             sched_state = scheduler.state_dict()
             sched_tensor = serialize_dict(sched_state)
-            await tensorstore_core.write_tensor(kvstore, "scheduler/state", sched_tensor, chunks=chunk)
 
+            await tensorstore_core.write_tensor(kvstore, "scheduler/state", sched_tensor)
 
         # consider saving ema stuff
 
@@ -88,7 +87,8 @@ def save_checkpoint(
         if schema:
             await schema_utils.validate_schema_async(kvstore, schema) # schema validation
 
-    asyncio.run(async_save())
+    return asyncio.run(async_save())   # we unlearned it.
+        
     
 
 
@@ -118,35 +118,34 @@ def load_checkpoint(
         if schema:
             await schema_utils.validate_schema_async(kvstore, schema)
 
-        loaded_state = {}
+        loaded = {}
 
         for name in state_dict.keys():
-            tensor = await tensorstore_core.read_tensor(kvstore, f"model/{name}") 
-            loaded_state[name] = tensor
-
-        model.load_state_dict(loaded_state, strict=strict)
+            loaded[name] = await tensorstore_core.read_tensor(kvstore, f"model/{name}")
+        model.load_state_dict(loaded, strict=strict)
         logger.info("[TS-WRAPPER] Model weights loaded")
+
+        model.load_state_dict(loaded, strict=strict)
+        logger.info("[TS-WRAPPER] Model weights loaded")
+
 
         # Optimizer
         if optimizer is not None:
-            opt_tensor = await tensorstore_core.read_tensor(kvstore, "optimizer/state")     # this initalization is weird not correct
-            opt_state = deserialize_dict(opt_tensor) 
-            optimizer.load_state_dict(opt_state)
-            logger.info(f"[TS-WRAPPER] Optimizer state loaded")
+            opt_tensor = await tensorstore_core.read_tensor(kvstore, "optimizer/state")
+            optimizer.load_state_dict(deserialize_dict(opt_tensor))
+            logger.info("[TS-WRAPPER] Optimizer state loaded")
 
         # Scheduler
         if scheduler is not None:
             sched_tensor = await tensorstore_core.read_tensor(kvstore, "scheduler/state")
-            sched_state = deserialize_dict(sched_tensor)
-            scheduler.load_state_dict(sched_state)
-            logger.info(f"[TS-WRAPPER] Scheduler state loaded")
+            scheduler.load_state_dict(deserialize_dict(sched_tensor))
+            logger.info("[TS-WRAPPER] Scheduler state loaded")
 
         meta = metadata_utils.read_metadata(path)    
         logger.info(f"[TS-WRAPPER] Metadata loaded: {meta}")
         return meta
     
-    metadata = asyncio.run(async_load()) # error here
-    return metadata
+    return asyncio.run(async_load()) 
 
 
 # -------------------------------------------------------------------------------------
@@ -177,7 +176,7 @@ def _fallback_chunks(shape, cap=256):
     return tuple(max(1, max(cap, int(s))) for s in shape)
 
 
-def decide_chunk(name, tensor, chunks):
+def decide_chunk(name, tensor, chunks):     # could be this
     shape = tuple(int(s) for s in tensor.shape)
     chunk = chunks.get(name)
     if chunk is None:
@@ -194,7 +193,24 @@ def decide_chunk(name, tensor, chunks):
     return chunk
 
 
+# For debugging ONLY (may remove later):
+
+async def write_param(kvstore, name, tensor, chunk=None):
+    import asyncio, time, logging
+    log = logging.getLogger("ckpt")     # temporary to use this fn
 
 
+    t0 = time.perf_counter()
+    log.info("[TS] write start: %s", name)
+    await asyncio.wait_for(
+        tensorstore_core.write_tensor(kvstore, f"model/{name}", tensor, chunks=chunk),
+        timeout=15,  # ← per-write cap so we learn *which* name stalls
+    )
+    log.info("[TS] write done: %s in %.3fs", name, time.perf_counter() - t0)
 
+
+async def async_save_all(kvstore, params):
+    # e.g., sequential while you debug; later you can batch with gather
+    for name, tensor in params:
+        await write_param(kvstore, name, tensor)
 

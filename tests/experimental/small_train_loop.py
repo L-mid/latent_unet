@@ -72,7 +72,7 @@ def train_loop(cfg, model, dataset):
     # --------------- Training Loop ----------------------
     for epoch in range(start_epoch, cfg.training.num_epochs): 
         model.train()
-        pbar = tqdm(dataloader, desc=f"Epoch {epoch}")      # possible datetime warning
+        pbar = tqdm(dataloader, desc=f"Epoch {epoch}")     
 
         for step, batch in enumerate(pbar):
             with debug_section("train_step"):

@@ -16,8 +16,6 @@ Some of the helper functions and API calls are weird, also diff tensors stored s
 
 Deletion does not apply to GCS/S3 deletion routines.
 
-READ tensor was not upgraded during schema_utils testing! (it's bad)!!!!!!!!!!!!!
-
 """
 
 
@@ -53,14 +51,14 @@ async def write_tensor(
     kvstore: Union[str, Dict],                          # base store (dir path or kvstore dict)
     array_path: str,                                    # subpath inside store, e.g. "model/linear.weight"
     tensor: Union[torch.Tensor, np.ndarray],
-    chunks: Optional[Tuple[int, ...]],                  # legacy: _array_chunks(shape)  (made chunking optionally local to here)
+    chunks: Optional[Tuple[int, ...]] | None = None,    # legacy: _array_chunks(shape)  (made chunking optionally local to here). Not currently used.
     codecs: Optional[list] = None, 
     delete_existing: bool = True,
 ):
     arr = _as_numpy(tensor)
     shape = tuple(int(s) for s in arr.shape)
     dtype = arr.dtype.name
-    chunk_shape = list(chunks)                  
+    chunk_shape = _array_chunks(shape)                
     codecs = codecs or [{"name": "bytes"}]      # legacy option (slow on CPU): [{"name": "zstd", "configuration": {"level": 5}}]
 
     # normalize kvstore argument
@@ -70,7 +68,6 @@ async def write_tensor(
         os.makedirs(kvstore, exist_ok=True)
     else:
         kv = kvstore    # assumes already a proper kvstore dict
-
 
     spec = {
         "driver": "zarr3",
@@ -93,11 +90,13 @@ async def write_tensor(
         },
     }
 
-    logger.info(f"[TS] kvstore={kv} | shape={arr.shape} dtype={arr.dtype} chunks={chunks}")
+    #logger.info(f"[TS] kvstore={kv} | shape={arr.shape} dtype={arr.dtype} chunks={chunks}")
     
-    store = await ts.open(spec) 
-    await store.write(arr) 
+    store = await ts.open(spec)
+    await store.write(arr)
+
     logger.info(f"[TS] Write complete: {array_path}")
+
 
     return store
 

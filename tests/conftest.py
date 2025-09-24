@@ -2,7 +2,7 @@
 import sys
 import os
 import pytest
-import importlib
+import importlib  
 
 
 # Ensure root project directory is in sys.path
@@ -12,20 +12,28 @@ if PROJECT_ROOT not in sys.path:
 importlib.invalidate_caches()
 
 # WANDB
-os.environ["WANDB_SILENT"] = "true"        # Suppress W&B terminal output
-os.environ["WANDB_MODE"] = "disabled"       # Disables W&B entirely for tests (often better for tests)
+#os.environ["WANDB_SILENT"] = "true"        # Suppress W&B terminal output
+#os.environ["WANDB_MODE"] = "disabled"       # Disables W&B entirely for tests (often better for tests)
 
 # TENSORFLOW
-os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")  # 0=all, 1=INFO off, 2=+WARN, 3=+ERROR
-os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")  # optional; avoids extra logs on some builds
+#os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")  # 0=all, 1=INFO off, 2=+WARN, 3=+ERROR
+#os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")  # optional; avoids extra logs on some builds
 
 
 def pytest_addoption(parser):
+    # Experimentals
     parser.addoption(
         "--exp",
         action="store_true",
         help="Run experimental tests (skipped by default)."
     )
+    # Timeouts
+    group = parser.getgroup("hard_timeout")
+    group.addoption("--ht-dump", action="store_true",
+                    help="Dump child Python stacks on hard timeout")
+    group.addoption("--ht-spy", action="store_true",
+                    help="Attempt py-spy dump before kill (if available)")
+
 
 def pytest_collection_modifyitems(config, items):
     run_exp = config.getoption("--exp")
@@ -75,3 +83,39 @@ def fp():
         yield fp
 
 
+
+def _maybe_spy(pid: int, out: str | None, enabled: bool):
+    if not enabled or not out:
+        return
+    try:
+        import shutil, subprocess
+        if shutil.which("py-spy"):
+            subprocess.run(["py-spy", "dump", "--pid",str(pid), "-o",out],
+                           timeout=3, check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+
+# Optional wrapper fixutre can use in tests
+import pytest
+from tests._hard_timeout import run_with_hard_timeout 
+@pytest.fixture
+def hard_timeout_runner(request, tmp_path):
+    dump = request.config.getoption("--ht-dump")
+    spy = request.config.getoption("--ht-spy")
+    def run(fn, /, *args, timeout: float, **kwargs):
+        # the stackdump save location
+        stackfile = str(tmp_path / "child_stack.txt") if dump else None
+        return run_with_hard_timeout(fn, *args, timeout=timeout, stackdump_path=stackfile, **kwargs)
+    return run
+
+"""
+Useage:
+@pytest.mark.timeout(0)
+def test_training_hard_timeout(cfg, model, dataset, hard_timeout_runner):
+    from functools import partial
+    job = partial(train_loop, cfg, model, dataset)
+    with pytest.raises(TimeoutError):
+        hard_timeout_runner(job, deadline=5)
+"""

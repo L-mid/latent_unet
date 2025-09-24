@@ -41,8 +41,6 @@ async def validate_schema_async(kvstore, schema: Dict):
         for key, (expected_shape, expected_dtype) in keys.items():
             dataset_path = f"{top_group}/{key}"
 
-            print(f"[SCHEMA UTILS]: {kvstore}, {dataset_path}")
-
             spec = {
                 "driver": "zarr3",
                 "kvstore": kvstore,

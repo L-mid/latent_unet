@@ -44,6 +44,7 @@ import torch
 import matplotlib.pyplot as plt
 import torchvision.utils as vutils
 from einops import rearrange
+from omegaconf import OmegaConf, DictConfig
 
 try:
     from utils.failure_injection_utils.failpoints import failpoints # optional
@@ -72,25 +73,44 @@ class VisualizerConfig:
     
 
     @staticmethod
-    def from_any(cfg: Any) -> "VisualizerConfig":
-        """Best-effort extraction from dict/OmegaConf/object with .visualization."""
-        # Accept both cfg and cfg.visualization
-        v = getattr(cfg, "visualization", cfg)
+    def from_cfg(cfg: Any) -> "VisualizerConfig":
+        cfg = cfg
+
+        if OmegaConf and isinstance(cfg, DictConfig):
+            v = OmegaConf.to_container(cfg, resolve=True)
+        elif VisualizerConfig: 
+            v = cfg       # the original dict
+
         def get(name, default):
             if isinstance(v, Mapping):
                 return v.get(name, default)
+            # SimpleNamespace or objects
             return getattr(v, name, default)
+
+        # 3) Read values (avoid bool(node) pitfalls by unwrapping first)
+        enabled_val       = get("enabled", True)
+        output_dir_val    = get("output_dir", "outputs/visualizations")
+        use_val           = get("use", [])
+        image_format_val  = get("image_format", "png")
+        nrow_val          = get("nrow", 4)
+        normalize_val     = get("normalize", True)
+        scale_each_val    = get("scale_each", True)
+        failpoint_val     = get("failpoint_name", "visualizer.run_all")
+        strict_kwargs_val = get("strict_kwargs", False)
+        warn_drop_val     = get("warn_dropped_kwargs", False)
+
+        # If any value came from OmegaConf node, the unwrap above should have handled it.
         return VisualizerConfig(
-            enabled=bool(get("enabled", True)),
-            output_dir=str(get("output_dir", "outputs/visualizations")),
-            use=list(get("use", [])),
-            image_format=str(get("image_format", "png")),
-            nrow=int(get("nrow", 4)),
-            normalize=bool(get("normalize", True)),
-            scale_each=bool(get("scale_each", True)),
-            failpoint_name=get("failpoint_name", "visualizer.run_all"),
-            strict_kwargs=bool(get("strict_kwargs", False)),
-            warn_dropped_kwargs=bool(get("warn_dropped_kwargs", False))
+            enabled=bool(enabled_val),
+            output_dir=str(output_dir_val),
+            use=list(use_val),
+            image_format=str(image_format_val),
+            nrow=int(nrow_val),
+            normalize=bool(normalize_val),
+            scale_each=bool(scale_each_val),
+            failpoint_name=str(failpoint_val),
+            strict_kwargs=bool(strict_kwargs_val),
+            warn_dropped_kwargs=bool(warn_drop_val),
         )
     
 # --------------------------------
@@ -218,18 +238,21 @@ def _filter_kwargs(fn: Callable[..., Any], cfg: VisualizerConfig, given: dict) -
 PluginFn = Callable[..., None]
 
 class Visualizer:
-    """
-    Visualizer with a registry of plotting/logging plugins.
-    """
-
-    _RESISTRY: Dict[str, PluginFn] = {}
+    """Visualizer with a registry of plotting/logging plugins."""
 
     def __init__(self, cfg: VisualizerConfig):
-        self.cfg = cfg
-        self.enabled = bool(cfg.enabled)
-        self.root = os.path.abspath(cfg.output_dir)
+        if isinstance(cfg, VisualizerConfig):
+            self.cfg = cfg
+        else:
+            # strict: requires cfg.viz to exist (attr or key)
+            self.cfg = VisualizerConfig.from_cfg(cfg)
+
+        self.enabled = self.cfg.enabled
+        self.root = os.path.abspath(cfg.output_dir)  
         _ensure_dir(self.root)
         self.cfg.nrow = _coerce_nrow(self.cfg.nrow)
+
+    _RESISTRY: Dict[str, PluginFn] = {}
 
     # --- registry managment ---
     @classmethod
@@ -261,7 +284,7 @@ class Visualizer:
         try:
             fn(self, **kwargs)
         except Exception as e:
-            raise RuntimeError(f"Visualizer '{name}' failed {e}") from e
+            raise RuntimeError(f"Visualizer '{name}' failed from: {e}") from e
         
     def run_all(self, *, step: Optional[int] = None, **kwargs: Any) -> None:
         """Run all plugins listed in cfg.use. Any missing kwargs are ingored by each plugin."""
@@ -273,7 +296,8 @@ class Visualizer:
         # Combine step into kwargs just once; filter per-plugin
         combined = dict(kwargs)
         if step is not None:
-            combined.setdefault("step", step)       # don't understand this step
+            combined.setdefault("step", step)
+
         for name in self.cfg.use:
             fn = self._RESISTRY.get(name)
             if fn is None:
@@ -283,6 +307,7 @@ class Visualizer:
                 fn(self, **self_kwargs)
             except Exception as e:
                 raise RuntimeError(f"Failed visualizer '{name}': {e}") from e
+        
 
 
 # -------------------------------
@@ -378,29 +403,93 @@ def _viz_guidance(self: Visualizer, *, samples: torch.Tensor, guidance_scales: I
 # --- Gradient Flow ---
 @Visualizer.register("grad_flow")
 def _viz_grad_flow(self: Visualizer, *, named_parameters: Iterable, step: Optional[int] = None,
-                   tag: str = "grad_flow") -> None:
-    ave_grads, max_grads, layers = [], [], []
-    for n, p in named_parameters:
-        if p is not None and p.requires_grad and p.grad is not None:
-            layers.append(n)
-            g = p.grad.detach()
-            ave_grads.append(float(g.abs().mean()))
-            max_grads.append(float(g.abs().max()))
-    if not layers:
-        return  # nothing to plot
+                   tag: str = "grad_flow") -> dict:
+    import json, math
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    items = list(named_parameters)  
+    stats = []
+    eps = 1e-12
+    for n, p in items:
+    # tolerate frozen snapshots that may not have .requires_grad but do have .grad  
+        req = getattr(p, "requires_grad", True)
+        g = getattr(p, "grad", None)
+        if not req or g is None:
+            continue
+        g = g.detach()
+        mean_abs    = float(g.abs().mean())
+        max_abs     = float(g.abs().max())
+        w = getattr(p, "data", None)
+        
+        if w is not None:
+            # gradient-to-weight ratio (RMS grad / RMS weight)
+            gwr = float(g.pow(2).mean().sqrt() / (w.detach().pow(2).mean().sqrt().clamp_min(eps)))
+            numel = int(w.numel())
+            dtype = str(w.dtype)
+        else:
+            gwr, numel, dtype = float("nan"), 0, "n/a"
+
+        stats.append({
+            "name": n, "mean_abs": mean_abs, "max_abs": max_abs,
+            "gwr": gwr, "numel": numel, "dtype": dtype
+        })  
+
+    out_img = self._path(tag, f"{tag}_{self._fmt_step(step)}.{self.cfg.image_format}")
+
+    if not stats:
+        print("[grad-flow viz] No grads to plot.")
+        fig, ax = plt.subplots(figsize=(8, 3))
+        ax.axis("off")
+        _save_figure(fig, out_img)
+        return {"layers": 0, "saved_to": str(out_img)}
+    
+    layers    =   [s["name"] for s in stats]
+    ave_grads = [s["mean_abs"] for s in stats]
+    max_grads = [s["max_abs"]  for s in stats]
+    gwr_vals  = [s["gwr"]      for s in stats]
+
     idx = np.arange(len(layers))
-    fig, ax = plt.subplots(figsize=(max(12, len(layers)*0.3), 6))
-    ax.bar(idx, max_grads, alpha=0.5, label='max')
+    fig, ax = plt.subplots(figsize=(max(12, len(layers)*0.30), 6))
+    ax.bar(idx, max_grads, alpha=0.5, label="max")
     ax.bar(idx, ave_grads, alpha=0.5, label='mean')
-    ax.axhline(0, color='k', linewidth=1)
-    ax.set_xticks(idx)
+    ax.axhline(0.0, color='k', linewidth=1)
     ax.set_title("Gradient flow per layer")
     ax.set_xlabel("layers")
     ax.set_ylabel("|grad|")
-    ax.legend()
-    ax.grid(True)
-    out = self._path(tag, f"{tag}_{self._fmt_step(step)}.{self.cfg.image_format}")      
-    _save_figure(fig, out) 
+
+    # If many layers, keep ticks compact and emit a mapping in JSON
+    if len(layers) > 40:
+        ax.set_xticks(idx)
+        ax.set_xticklabels([str(i) for i in range(len(layers))], rotation=0, fontsize=8)
+    else:
+        ax.set_xticks(idx)
+        ax.set_xticklabels(layers, rotation=90, fontsize=8)  
+
+
+    # Optional: second axis for GWR (helps interpret scale)
+    ax2 = ax.twinx()
+    ax2.plot(idx, gwr_vals, linewidth=1.0, marker='.', label='GWR (RMS grad / RMS weight)')
+    ax2.set_ylabel("GWR")
+    ax.legend(loc='upper left')
+    ax.grid(True, which="both", axis="y", alpha=0.3)
+
+    _save_figure(fig, out_img)
+
+    # Write a compact JSON with stats + index->name mapping
+    out_json = os.path.splitext(out_img)[0] + ".json"
+    with open(out_json, "w", encoding="utf-8") as f:
+        json.dump({
+            "step": step,
+            "layers": layers,
+            "stats": stats,
+            "notes": "GWR = rms(grad) / rms(weight). Log-scale the y-axis if ranges are wide."            
+        }, f, indent=2)
+
+    # return a tiny summary for tests
+    top_gwr = sorted(stats, key=lambda s: float(np.nan_to_num(s["gwr"], nan=-1.0, posinf=1e9, neginf=-1e9)), reverse=True)[:5]
+    return {"layers": len(layers), "saved_to": str(out_img), "top_gwr": top_gwr}        # json data, not currently used
+
 
 
 # --- Prameter Norms ---
@@ -468,7 +557,7 @@ class _NoOpVisualizer(Visualizer):
         return 
     
 def build_visualizer(cfg_like: Any) -> Visualizer:
-    cfg = VisualizerConfig.from_any(cfg_like)
+    cfg = VisualizerConfig.from_cfg(cfg_like)
     if not cfg.enabled:
         return _NoOpVisualizer(cfg)
     return Visualizer(cfg)
@@ -480,6 +569,10 @@ __all__ = [
     "build_visualizer",
 ]
     
+
+
+
+
 
 def test_usage(load_yaml=False, ymal_path=None):
     """Usage test."""

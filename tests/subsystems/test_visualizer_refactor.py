@@ -87,9 +87,12 @@ def _maybe_show(path: pathlib.Path, show_any=False) -> None:
 # Fixtures
 # ---------------------------
 
-@pytest.fixture()
-def outdir(tmp_path: pathlib.Path) -> pathlib.Path:
-    return tmp_path
+@pytest.fixture(scope="function")
+def outdir(tmp_path, request) -> pathlib.Path:
+    d = tmp_path / f"viz_{request.node.name}"
+    d.mkdir()
+    return d
+
 
 @pytest.fixture()
 def viz(outdir: pathlib.Path):
@@ -150,7 +153,7 @@ def test_schedule_plot(viz, outdir: pathlib.Path):
     _maybe_show(path)
 
 
-@pytest.mark.visual
+@pytest.mark.visual                                 #
 def test_guidance_grid(viz, outdir: pathlib.Path):
     G, B, C, H, W = 3, 4, 3, 16, 16
     samples = torch.rand(G, B, C, H, W)

@@ -5,7 +5,7 @@ from utils.failure_injection_utils.failpoints import failpoints #issue here
 
 # === NOTES:
 """
-May already be implemented in the checkpointing proper, CHECK.
+May already be replaced
 """
 
 class CrashBetweenTmpAndRename(Exception): ...

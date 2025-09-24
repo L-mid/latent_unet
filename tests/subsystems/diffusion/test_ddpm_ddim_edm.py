@@ -9,6 +9,11 @@ from diffusion.edm import edm_preprocess, edm_sample, get_edm_schedule
 from model.build_unet import build_unet_from_config
 from model.config import load_config
 
+# === NOTES
+"""
+Each cfg should have it's on consumed section, which can be tested and modded indepentently.
+"""
+
 
 @pytest.fixture(scope="module")
 def dummy_inputs():
@@ -82,8 +87,25 @@ def test_sampler_instantiation(dummy_inputs, sampler_class, model_and_config):
 
     assert sampler is not None, f"{sampler_class.__name__} failed to instantiate"
 
+def test_internal_ddim_sampler():
+    from diffusion.ddim import sample_ddim_grid
+
+    from helpers import fake_model
+    from helpers import mock_configs
+    from omegaconf import OmegaConf
+
+    from tempfile import mkdtemp
+    tmp_dir = mkdtemp()
+
+    cfg = OmegaConf.create(mock_configs.accurate_cfg())
+    cfg.viz.output_dir = tmp_dir    # "./visuals" is the real dir
 
 
+    model = fake_model.build_fake_model_for_sampler_tests()
 
+    x = torch.randn(1, 3, 4, 4)     # can go high, shape controls image
+    step = 1
+
+    sample_ddim_grid(cfg, model, shape=x.shape, step=step)   
 
 

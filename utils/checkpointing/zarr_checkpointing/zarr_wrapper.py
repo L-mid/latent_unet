@@ -4,12 +4,13 @@ import logging
 from . import zarr_core
 from typing import Optional, Any, Union
 import torch
+from pathlib import Path
+from utils.checkpointing import ckpt_io
+import zarr
 
 # === NOTES
 """
 logging is not the logger i created.
-
-dict reading management (serialize and deserialize) is not good.
 
 """
 
@@ -25,17 +26,26 @@ def save_model(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
     scheduler: torch.optim.lr_scheduler._LRScheduler,
-    ema: Union[torch.optim.swa_utils.AveragedModel, Any, None],            # don't have a good name. But put the model in
+    ema: Union[Any, None], 
+    *,         
     epoch: int,
     step: int,
     path: str,
+    keep_last: int = 3,
     extra: dict = None
 ):
+    path = Path(path)
+    #path = in_path / f"epoch_{epoch:06d}_step_{step:09d}"
+    #logger.info(f"[ZARR] Saving full checkpoint at: {path}")
+    
     # High-level save of full model state into Zarr.
 
-    logger.info(f"[ZARR] Saving full checkpoint to: {path}")
+    tmp_dir, final_dir = ckpt_io.begin_versioned_save(path, epoch, step)
+    
+    # open a Zarr group into the TMP dir
+      
+    group = zarr_core.open_store(tmp_dir, mode="w")
 
-    group = zarr_core.open_store(path, mode="w")
 
     # Save model parameters
     for name, param in model.state_dict().items():
@@ -43,8 +53,8 @@ def save_model(
 
     # Save optimizer state
     if optimizer is not None:
-        opt_sate = optimizer.state_dict()
-        for key, value in opt_sate.items():
+        opt_state = optimizer.state_dict()
+        for key, value in opt_state.items():
             sub_group = group.require_group("optimizer")
             zarr_core.write_tensor(sub_group, key, serialize_dict(value)) 
 
@@ -61,9 +71,10 @@ def save_model(
         for key, value in ema_state.items():
             sub_group = group.require_group("ema") 
             zarr_core.write_tensor(sub_group, key, serialize_dict(value))
+            
+    
 
-
-    group = zarr_core.open_store(path, mode="a")
+    group = zarr_core.open_store(tmp_dir, mode="a")
     
     # Save metadata
     group.attrs["epoch"]            = int(epoch) 
@@ -73,6 +84,20 @@ def save_model(
     group.attrs["global_step"]      = int(step)
     group.attrs["extra"] = extra or {}  
 
+    # mark complete *inside tmp*
+    assert tmp_dir.exists(), f"tmp_dir vanished before complete: {tmp_dir}"
+    ckpt_io.mark_complete(tmp_dir) 
+
+    # atomic promote tmp -> final
+    ckpt_io.finalize_versioned_save(tmp_dir, final_dir) 
+
+    # pointer file at root
+    ckpt_io.update_latest_pointer(path, final_dir, epoch, step)  
+
+    # retention
+    ckpt_io.keep_last_n(path, n=keep_last)   
+
+    return final_dir
 
 
 # ------------------------------------------------------------------------------
@@ -88,11 +113,13 @@ def load_model(
     strict: bool = True,
 ) -> dict:
     
+
     # High-level load of full model state from Zarr.
 
-    logger.info(f"[ZARR] Loading checkpoint from: {path}")
+    #logger.info(f"[ZARR] Loading checkpoint at: {path}")    # path is determined by ckpt finder before load
 
-    group = zarr_core.open_store(path, mode="r")
+    group = zarr_core.open_store(path, mode="r")        
+
 
     # Load model weights
     state_dict = {}
@@ -101,65 +128,32 @@ def load_model(
         tensor = zarr_core.read_tensor(model_group, name)
         state_dict[name] = tensor
 
-    model.load_state_dict(state_dict, strict=strict)        # what does strict do?
-    logger.info(f"[ZARR] Model weights loaded (strict={strict})")
+    model.load_state_dict(state_dict, strict=strict)       
+    #logger.info(f"[ZARR] Model weights loaded (strict={strict})")
 
-    # Load optimizer state
-    if optimizer is not None and "optimizer" in group.array_keys():
-        opt_state = {}
+
+    # --- Optimizer ---
+    if optimizer is not None and _has_child_group(group, "optimizer"):
         opt_group = group["optimizer"]
-
-        for key in opt_group.array_keys(): 
-            data = opt_group[key][...]
-            if data.shape == ():
-                data = data.item()
-            opt_state[key] = data
-
-        # Read attrs (if you saved scalars/metadata as attributes)
-        for k, v in opt_group.attrs.items():
-            opt_group[k] = v
-
+        opt_state = _load_serialized_map(opt_group)
         optimizer.load_state_dict(opt_state)
-        logger.info("[ZARR] Optimizer state loaded")
+        #logger.info("[ZARR] Optimizer state loaded")
 
 
-    # Load scheduler state
-    if scheduler is not None and "scheduler" in group.array_keys(): 
-        sched_state = {}
+    # --- Scheduler ---
+    if scheduler is not None and _has_child_group(group, "scheduler"):
         sched_group = group["scheduler"]
-
-        for key in sched_group.array_keys():                # iterate stored arrays
-            data = sched_group[key][...]                    # -> np.ndarray
-            if data.shape == ():
-                data = data.item()                          # 0-dim scalar array
-            sched_group[key] = data                        
-
-        # Read attrs (if you saved scalars/metadata as attributes)
-        for k, v in sched_group.attrs.items():
-            sched_group[k] = v
-
+        sched_state = _load_serialized_map(sched_group)
         scheduler.load_state_dict(sched_state)
-        logger.info("[ZARR] Scheduler state loaded")
+        #logger.info("[ZARR] Scheduler state loaded")
 
 
-    # Load ema state
-    if ema is not None and "ema" in group.array_keys():
-        ema_state = {}
+    # --- EMA ---
+    if ema is not None and _has_child_group(group, "ema"):
         ema_group = group["ema"]
-
-        for key in ema_group.array_keys():
-            data = sched_group[key][...]
-            if data.shape == ():
-                data = data.item()
-            ema_group[key] = data
-
-        # Read attrs (if you saved scalars/metadata as attrs)
-        for k, v in ema_group.attrs.items():
-            ema_group[k] = v
-            
+        ema_state = _load_serialized_map(ema_group)
         ema.load_state_dict(ema_state)
-        logger.info("[ZARR] Schedule state loaded")
-
+        #logger.info("[ZARR] EMA state loaded")
 
 
     # Read metadata
@@ -196,3 +190,19 @@ def deserialize_dict(tensor: torch.Tensor) -> dict:
     buf = bytes(tensor.tolist())
     obj = pickle.loads(buf)
     return obj
+
+
+# Serialization helpers
+def _has_child_group(group, name: str) -> bool:
+    # Works for v2/v3-ish group APIs: membership checks both arrays & groups.
+    try:
+        return name in group and hasattr(group[name], "attrs")
+    except Exception:
+        return False
+
+def _load_serialized_map(sub_group):
+    out = {}
+    for key in sub_group.array_keys():               # keys like "state", "param_groups", etc.
+        t = zarr_core.read_tensor(sub_group, key)    # -> torch.uint8 tensor
+        out[key] = deserialize_dict(t)               # -> Python object (dict/list/number)
+    return out

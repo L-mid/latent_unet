@@ -3,7 +3,7 @@ import tensorstore as ts
 import logging
 from typing import Callable, Dict, Optional
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("ckpt")
 
 # --------------------------------------------------------------------------------
 # Internal driver registry

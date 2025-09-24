@@ -136,15 +136,14 @@ def make_dummy_cfg():
         training=SimpleNamespace(
             batch_size=2,
             num_epochs=1,
-            amp=True,
-            grad_clip=1.0,
-            vis_interval=1,    # every N epochs
-            ckpt_interval=1,   # every N epochs
-        ),
+            amp=False,
+            grad_clip=None,
+            viz_interval=1,    # every N epochs
+            ckpt_interval=99,   # every N epochs
+        ), 
         checkpoint=SimpleNamespace(
             backend="noop",
-            save_every=1000,    # 1000 what?
-            out_dir=tmp_dir     # might need to str
+            out_dir=tmp_dir     
         ),
         debug=SimpleNamespace(
             enabled=False,
@@ -153,21 +152,26 @@ def make_dummy_cfg():
             use_wandb = False,
             use_tb = False,
             project_name = "latent_unet-v1",
-            run_name="test_minimal"
+            run_name="test_minimal",
+            output_dir=tmp_dir
         ),
-        visualization=SimpleNamespace(
-            enabled=False,
-            output_dir=tmp_dir,    
+        sampler=SimpleNamespace(
+            num_steps=50,
+            ddim_eta=0.0,
+        ),
+        viz=SimpleNamespace(
+            enabled=True,
+            output_dir=tmp_dir, 
+            nrow=4,   
         ),
     )
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="training loop too slow on cpu")
-def test_train_one_step_runs():
-    device = "cuda"
+@pytest.mark.parametrize("device", ["cpu", "gpu"] if torch.cuda.is_available() else ["cpu"])
+def test_train_one_step_runs(device):
+    device = device
     cfg_ns = make_dummy_cfg()
     plain = to_plain(cfg_ns)
     cfg = OmegaConf.create(plain)
-
 
     # omegaconf asignment methods (for device as example):
 
@@ -185,22 +189,19 @@ def test_train_one_step_runs():
     OmegaConf.update(cfg, "device", device)
     # Can also do deeper paths e.g.: (cfg, "resblock.params.norm_type", batch)
 
-
     model = build_unet_from_config(cfg).to(device)
  
-    dataset = DummyDataset()
-
-    logger = NoopLogger()
+    dataset = DummyDataset(num_samples=3)
 
     logs = train_loop(
         cfg=cfg,
         model=model,
         dataset=dataset,
-        logger=logger,
     )
 
     assert "loss" in logs
     assert isinstance(logs["loss"], float), "loss should be a float"
+
     
 
 def test_dummy_dataset_loading():
