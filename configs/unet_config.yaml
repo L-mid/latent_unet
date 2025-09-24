@@ -155,7 +155,7 @@ logging:
   use_wandb: true
   use_tb: true
   project_name: "latent-unet-v1"
-  run_name: "baseline_128ch_flash"
+  run_name: "baseline_64ch_flash"
   output_dir: "logs"
 
 
