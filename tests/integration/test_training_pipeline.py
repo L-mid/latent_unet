@@ -67,7 +67,7 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     cfg.device = 'gpu'  #smoke test stays on CPU for CI speed/stability
     device = cfg.device
 
-
+    """
     # --- 1) Determinism + fast CPU settings
     seed = 1234
     random.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
@@ -81,11 +81,12 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
 
     # Disable external loggers.
     # not implimented. 
-    """
+    
     monkeypatch.setenv("WANDB_MODE", "disabled)
     monkeypatch.setenv("WANDB_SILENT", true)
-    """
+    
     #os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
+    """
 
     # --- 2) data ---
     cfg.model.image_size = 32
