@@ -64,7 +64,7 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     cfg = load_config("configs/unet_config.yaml")
     cfg = OmegaConf.create(cfg)
 
-    cfg.device = 'gpu'  #smoke test stays on CPU for CI speed/stability
+    cfg.device = 'cuda'  #smoke test stays on CPU for CI speed/stability
     device = cfg.device
 
     """
