@@ -94,7 +94,7 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     dataset = load_cifar_dataset(cfg, only_return_dataset=True)
 
     # --- 3) model ---
-    cfg.model.base_channels = 128
+    cfg.model.base_channels = 64
     cfg.debug.enabled = False
     cfg.model.channel_multipliers = [1, 2, 3, 4]
     model = build_unet_from_config(cfg).to(device) 
@@ -111,8 +111,8 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     # ckpts and viz and log (per epoch)
     cfg.viz.enabled = True
 
-    cfg.training.ckpt_interval = 30
-    cfg.training.viz_interval = 15
+    cfg.training.ckpt_interval = 1
+    cfg.training.viz_interval = 1
 
     cfg.checkpoint.out_dir = "ckpts_2"     # "C:/_ckpts" for off onedrive 
     cfg.viz.output_dir = "viz"
