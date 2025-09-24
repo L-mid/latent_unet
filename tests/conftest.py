@@ -84,7 +84,7 @@ def fp():
 
 
 
-def _maybe_spy(pid: int, out: str | None, enabled: bool):
+"""def _maybe_spy(pid: int, out: str | None, enabled: bool):
     if not enabled or not out:
         return
     try:
@@ -94,10 +94,10 @@ def _maybe_spy(pid: int, out: str | None, enabled: bool):
                            timeout=3, check=False,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
-        pass
+        pass"""
 
 
-# Optional wrapper fixutre can use in tests
+"""# Optional wrapper fixutre can use in tests
 import pytest
 from tests._hard_timeout import run_with_hard_timeout 
 @pytest.fixture
@@ -109,6 +109,7 @@ def hard_timeout_runner(request, tmp_path):
         stackfile = str(tmp_path / "child_stack.txt") if dump else None
         return run_with_hard_timeout(fn, *args, timeout=timeout, stackdump_path=stackfile, **kwargs)
     return run
+"""
 
 """
 Useage:
