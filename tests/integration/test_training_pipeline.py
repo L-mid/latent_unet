@@ -95,7 +95,7 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     # --- 3) model ---
     cfg.model.base_channels = 64
     cfg.debug.enabled = False
-    cfg.model.channel_multipliers = [1, 2]
+    cfg.model.channel_multipliers = [1, 2, 3, 4]
     model = build_unet_from_config(cfg).to(device) 
 
     # --- 4) One tiny epoch ---
@@ -104,18 +104,18 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     cfg.training.grad_clip = None
     cfg.logging.use_wandb = True; cfg.logging.use_tb = True
 
-    cfg.training.num_epochs = 4     
+    cfg.training.num_epochs = 999     
     cfg.training.num_workers = 0
 
     # ckpts and viz and log (per epoch)
     cfg.viz.enabled = True
 
-    cfg.training.ckpt_interval = 1
+    cfg.training.ckpt_interval = 30
     cfg.training.viz_interval = 1
 
-    cfg.checkpoint.out_dir = tmp_path     # "C:/_ckpts" for off onedrive 
-    cfg.viz.output_dir = tmp_path
-    cfg.logging.output_dir = tmp_path
+    cfg.checkpoint.out_dir = "ckpts"     # "C:/_ckpts" for off onedrive 
+    cfg.viz.output_dir = "viz"
+    cfg.logging.output_dir = "logs"
 
 
     cfg.resume_path = cfg.checkpoint.out_dir  # loops
