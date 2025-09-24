@@ -90,8 +90,8 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
 
     # --- 2) data ---
     cfg.model.image_size = 32
-    cfg.batch_size = 2
-    dataset = load_cifar_dataset(cfg, subset_size=2, only_return_dataset=True)
+    cfg.batch_size = 32
+    dataset = load_cifar_dataset(cfg, only_return_dataset=True)
 
     # --- 3) model ---
     cfg.model.base_channels = 64
@@ -112,7 +112,7 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     cfg.viz.enabled = True
 
     cfg.training.ckpt_interval = 30
-    cfg.training.viz_interval = 1
+    cfg.training.viz_interval = 15
 
     cfg.checkpoint.out_dir = "ckpts"     # "C:/_ckpts" for off onedrive 
     cfg.viz.output_dir = "viz"
