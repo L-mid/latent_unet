@@ -69,7 +69,7 @@ def cfg_obj(request):
     return request.getfixturevalue(request.param)
 
 import os, tqdm, pytest
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture()
 def _kill_tqdm_moniter():
     os.environ["TQDM_DISABLE"] = "1"    # no bars in CI
     tqdm.tqdm.monitor_interval = 0      # disabled moniter thread

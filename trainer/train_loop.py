@@ -7,7 +7,7 @@ from utils.debug import debug_log, debug_section
 
 from utils.checkpointing.zarr_checkpointing.zarr_wrapper import save_model, load_model
 from utils.visualizer_refactor import build_visualizer
-from trainer.logger import build_logger
+from trainer.logger import build_logger, log_ckpt_artifact
 from trainer.optim_utils import build_optimizer, build_scheduler
 from trainer.optim_utils import EMA
 from trainer.losses import get_loss_fn
@@ -163,7 +163,8 @@ def train_loop(cfg, model, dataset):
             if cfg.checkpoint.backend in {"noop", None}:
                 pass    # skip saving in tests
             else:
-                save_model(model, optimizer, loss_scheduler, ema, epoch=epoch, step=global_step, path=cfg.checkpoint.out_dir)    
+                final_dir = save_model(model, optimizer, loss_scheduler, ema, epoch=epoch, step=global_step, path=cfg.checkpoint.out_dir)    
+                log_ckpt_artifact(final_dir, epoch=epoch, step=global_step, best=True)
     logger.finish()
 
     return logs

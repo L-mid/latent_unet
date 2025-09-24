@@ -64,7 +64,7 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     cfg = load_config("configs/unet_config.yaml")
     cfg = OmegaConf.create(cfg)
 
-    cfg.device = 'cuda'  #smoke test stays on CPU for CI speed/stability
+    cfg.device = 'cuda' if torch.cuda.is_available() else "cpu"  #smoke test stays on CPU for CI speed/stability, cuda is TEMP (for fun training)
     device = cfg.device
 
     """
@@ -89,14 +89,14 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     """
 
     # --- 2) data ---
-    cfg.model.image_size = 32
-    cfg.batch_size = 32
-    dataset = load_cifar_dataset(cfg, only_return_dataset=True)
+    cfg.model.image_size = 32 if torch.cuda.is_available() else 4
+    cfg.batch_size = 32 if torch.cuda.is_available() else 2
+    dataset = load_cifar_dataset(cfg, only_return_dataset=True) if torch.cuda.is_available() else load_cifar_dataset(cfg, subset_size=2, only_return_dataset=True)
 
     # --- 3) model ---
-    cfg.model.base_channels = 64
+    cfg.model.base_channels = 64 if torch.cuda.is_available() else 8
     cfg.debug.enabled = False
-    cfg.model.channel_multipliers = [1, 2, 3, 4]
+    cfg.model.channel_multipliers = [1, 2, 3, 4] if torch.cuda.is_available() else [1, 2]
     model = build_unet_from_config(cfg).to(device) 
 
     # --- 4) One tiny epoch ---
@@ -105,7 +105,7 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     cfg.training.grad_clip = None
     cfg.logging.use_wandb = True; cfg.logging.use_tb = True
 
-    cfg.training.num_epochs = 999     
+    cfg.training.num_epochs = 999 if torch.cuda.is_available() else 1  # temp for training
     cfg.training.num_workers = 0
 
     # ckpts and viz and log (per epoch)
@@ -114,9 +114,9 @@ def test_end_to_end_train_smoke(tmp_path, timeout=60):
     cfg.training.ckpt_interval = 1
     cfg.training.viz_interval = 1
 
-    cfg.checkpoint.out_dir = "ckpts_2"     # "C:/_ckpts" for off onedrive 
-    cfg.viz.output_dir = "viz"
-    cfg.logging.output_dir = "logs"
+    cfg.checkpoint.out_dir = "ckpts_2"  if torch.cuda.is_available() else tmp_path   # "C:/_ckpts" for off onedrive 
+    cfg.viz.output_dir = "viz" if torch.cuda.is_available() else tmp_path
+    cfg.logging.output_dir = "logs" if torch.cuda.is_available() else tmp_path
 
 
     cfg.resume_path = cfg.checkpoint.out_dir  # loops

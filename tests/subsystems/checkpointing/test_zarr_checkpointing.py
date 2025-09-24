@@ -57,12 +57,14 @@ def test_full_zarr_checkpoint_roundtrip():
     ema_reloaded = ema = torch.optim.swa_utils.AveragedModel(model)
 
     # Full load
+    from utils.checkpointing.ckpt_io import resolve_latest_checkpoint
+    correct_dir = resolve_latest_checkpoint(checkpoint_path)
     state = zarr_wrapper.load_model(
         model=model_reloaded,
         optimizer=optimizer_reloaded,
         scheduler=scheduler_reloaded,
         ema=ema_reloaded,
-        path=checkpoint_path,
+        path=correct_dir,
         strict=True,
     )
 

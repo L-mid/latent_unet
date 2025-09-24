@@ -116,6 +116,9 @@ def resolve_latest_checkpoint(ckpt_root: str | Path) -> Path | None:
       3) newest complete in name order epoch_XXXX_step_YYYY.
       4) newest complete by mtime.
     """
+    if ckpt_root == None:
+        return None
+    
     ckpt_root = Path(ckpt_root)
     if not ckpt_root.exists():
         return None

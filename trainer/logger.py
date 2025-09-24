@@ -117,7 +117,7 @@ class ExperimentLogger(BaseLogger):
         if self.use_wandb:
             wb_img = _to_wandb_image(chw)  # W&B wants HWC-ish
             wandb.log({tag: wb_img}, step=step)
-            
+
 
     def log_dict(self, metrics: Mapping[str, float], step: int):
         for k, v in metrics.items():
@@ -179,3 +179,12 @@ def _to_wandb_image(chw: torch.Tensor):
     """Convert CHW [0,1] float -> HWC uint8 for W&B."""
     hwc = (chw.mul(255).round().byte().permute(1, 2, 0).numpy())
     return wandb.Image(hwc)
+
+
+# saves ckpts to wandb
+def log_ckpt_artifact(final_dir: Path, epoch: int, step: int, best: bool=False):
+    art = wandb.Artifact("latent_unet_ckpt", type="model")
+    art.add_dir(str(final_dir))
+    aliases = ["latest", f"epoch_{epoch}", f"step_{step}"]
+    if best: aliases.append("best")
+    wandb.log_artifact(art, aliases=aliases)
